@@ -1,0 +1,26 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev --host",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxtjs/supabase": "^1.5.3",
+    "@pinia/nuxt": "^0.11.1",
+    "nuxt": "^4.0.0",
+    "pinia": "^3.0.3",
+    "swiper": "^11.2.10",
+    "vue": "^3.5.17",
+    "vue-advanced-cropper": "^2.8.9",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "sass": "^1.89.2",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}
