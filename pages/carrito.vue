@@ -94,26 +94,169 @@ const sendOrderToWhatsApp = (customerInfo) => {
 </script>
 
 <style scoped>
-.container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-.cart-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: flex-start; }
-.order-summary, .checkout-summary { background-color: #1e1e1e; padding: 2rem; border-radius: 12px; }
-.cart-header { display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid #333; padding-bottom: 1rem; margin-bottom: 1rem; }
+.container { 
+  max-width: 1200px; 
+  margin: 2rem auto; 
+  padding: 0 1rem; 
+}
+
+.cart-layout { 
+  display: grid; 
+  grid-template-columns: 2fr 1fr; 
+  gap: 2rem; 
+  align-items: flex-start; 
+}
+
+.order-summary, .checkout-summary { 
+  background-color: var(--color-surface);
+  padding: 2rem; 
+  border-radius: 12px; 
+  border: 1px solid var(--color-border);
+}
+
+.cart-header { 
+  display: flex; 
+  align-items: center; 
+  gap: 1rem; 
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1rem; 
+  margin-bottom: 1rem; 
+}
+
 .cart-icon { font-size: 2rem; }
-h1, h2 { margin: 0; }
-.cart-item { display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid #333; }
-.item-image { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
-.item-name { font-weight: bold; }
-.item-price { color: #888; }
-.quantity-selector { display: flex; align-items: center; gap: 0.8rem; }
-.quantity-selector button { width: 25px; height: 25px; border-radius: 50%; border: 1px solid #555; background-color: #333; color: #fff; cursor: pointer; }
-.remove-button { background: none; border: none; color: #888; font-size: 1.5rem; cursor: pointer; }
-.summary-row { display: flex; justify-content: space-between; margin-bottom: 1rem; }
-.total-row { font-weight: bold; font-size: 1.2rem; border-top: 1px solid #333; padding-top: 1rem; }
-.checkout-button { width: 100%; padding: 12px; background-color: #007bff; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; margin-top: 1rem; }
-.empty-cart { text-align: center; padding: 4rem; margin: 20px; display: flex; flex-direction: column; }
-.shop-link { background-color: #007bff; color: #fff; padding: 1rem 2rem; border-radius: 8px; text-decoration: none; }
+h1, h2 { margin: 0; color: var(--color-text-primary); }
+
+.cart-item { 
+  display: grid; 
+  /* Estructura simplificada: Imagen | Información | Botón de borrar */
+  grid-template-columns: auto 1fr auto; 
+  align-items: center; 
+  gap: 1rem; 
+  padding: 1.5rem 0; 
+  border-bottom: 1px solid var(--color-border);
+}
+
+.item-image { 
+  width: 80px; 
+  height: 80px; 
+  object-fit: cover; 
+  border-radius: 8px; 
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 100%;
+}
+
+.info-top .item-name { 
+  font-weight: bold; 
+  color: var(--color-text-primary);
+  margin: 0 0 0.25rem 0;
+}
+
+.info-top .item-price { 
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.info-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.quantity-selector { 
+  display: flex; 
+  align-items: center; 
+  gap: 0.8rem; 
+}
+
+.quantity-selector button { 
+  width: 30px; 
+  height: 30px; 
+  border-radius: 50%; 
+  border: 1px solid var(--color-border);
+  background-color: var(--color-background);
+  color: var(--color-text-secondary);
+  cursor: pointer; 
+}
+
+.item-total {
+  font-weight: bold;
+}
+
+.remove-button { 
+  background: none; 
+  border: none; 
+  color: var(--color-text-secondary);
+  font-size: 1.5rem; 
+  cursor: pointer; 
+  padding: 0.5rem;
+}
+
+.summary-row { 
+  display: flex; 
+  justify-content: space-between; 
+  margin-bottom: 1rem; 
+  color: var(--color-text-secondary); /* CAMBIO */
+}
+
+.total-row { 
+  font-weight: bold; 
+  font-size: 1.2rem; 
+  border-top: 1px solid var(--color-border); /* CAMBIO */
+  padding-top: 1rem; 
+  color: var(--color-text-primary); /* CAMBIO */
+}
+
+.checkout-button { 
+  width: 100%; 
+  padding: 12px; 
+  background-color: var(--color-primary); /* CAMBIO */
+  color: #fff; 
+  border: none; 
+  border-radius: 8px; 
+  cursor: pointer; 
+  font-size: 1.1rem; 
+  margin-top: 1rem; 
+}
+
+.empty-cart { 
+  text-align: center; 
+  padding: 4rem; 
+}
+
+.shop-link { 
+  background-color: var(--color-primary); /* CAMBIO */
+  color: #fff; 
+  padding: 1rem 2rem; 
+  border-radius: 8px; 
+  text-decoration: none; 
+}
 
 @media (max-width: 900px) {
   .cart-layout { grid-template-columns: 1fr; }
+}
+
+/* LA CLAVE: Media Query para móviles pequeños */
+@media (max-width: 600px) {
+  .cart-item {
+    grid-template-columns: auto 1fr; /* Imagen | (Info y Botón de borrar) */
+    gap: 0.8rem;
+  }
+  .remove-button {
+    grid-column: 2; /* Mueve el botón de borrar a la segunda columna */
+    justify-self: end; /* Lo alinea a la derecha */
+    padding-top: 0;
+  }
+  .info-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
 }
 </style>

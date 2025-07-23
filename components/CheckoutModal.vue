@@ -111,20 +111,20 @@ const formatCurrency = (value) => (typeof value === 'number' ? value.toFixed(2) 
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.6); /* CAMBIO */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 .modal-content {
-  background-color: #1e1e1e;
+  background-color: var(--color-surface); /* CAMBIO */
   padding: 2rem;
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
   position: relative;
-  border: 1px solid #333;
+  border: 1px solid var(--color-border); /* CAMBIO */
 }
 .close-button {
   position: absolute;
@@ -132,18 +132,19 @@ const formatCurrency = (value) => (typeof value === 'number' ? value.toFixed(2) 
   right: 1rem;
   background: none;
   border: none;
-  color: #888;
+  color: var(--color-text-secondary); /* CAMBIO */
   font-size: 1.5rem;
   cursor: pointer;
 }
 h2, h4 {
   margin-top: 0;
   text-align: center;
+  color: var(--color-text-primary); /* CAMBIO */
 }
 h4 {
   margin-top: 1.5rem;
-  color: #aaa;
-  border-bottom: 1px solid #444;
+  color: var(--color-text-secondary); /* CAMBIO */
+  border-bottom: 1px solid var(--color-border); /* CAMBIO */
   padding-bottom: 0.5rem;
 }
 .form-group {
@@ -152,14 +153,14 @@ h4 {
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #aaa;
+  color: var(--color-text-secondary); /* CAMBIO */
 }
 input, select {
   width: 100%;
   padding: 10px;
-  background-color: #333;
-  border: 1px solid #555;
-  color: #fff;
+  background-color: #fff; /* CAMBIO */
+  border: 1px solid var(--color-border); /* CAMBIO */
+  color: var(--color-text-primary); /* CAMBIO */
   border-radius: 8px;
   font-size: 1rem;
 }
@@ -168,30 +169,32 @@ input, select {
   gap: 1rem;
 }
 .order-details {
-  background-color: #2a2a2a;
+  background-color: var(--color-background); /* CAMBIO */
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
 }
 .product-row {
   display: flex;
   justify-content: space-between;
   padding: 0.5rem 0;
-  color: #ccc;
+  color: var(--color-text-secondary); /* CAMBIO */
 }
 .product-row span:last-child {
   font-weight: 500;
-  color: #fff;
+  color: var(--color-text-primary); /* CAMBIO */
 }
 .product-row.total {
   font-weight: bold;
   font-size: 1.1rem;
-  border-top: 1px solid #444;
+  border-top: 1px solid var(--color-border); /* CAMBIO */
   margin-top: 0.5rem;
-  color: #fff;
+  color: var(--color-text-primary); /* CAMBIO */
 }
 .confirmation-summary p {
-  background-color: #2a2a2a;
+  background-color: var(--color-background); /* CAMBIO */
+  border: 1px solid var(--color-border);
   padding: 0.8rem;
   border-radius: 8px;
   margin: 0.5rem 0;
@@ -199,7 +202,7 @@ input, select {
   justify-content: space-between;
 }
 .confirmation-summary p strong {
-  color: #aaa;
+  color: var(--color-text-secondary); /* CAMBIO */
 }
 .confirmation-actions {
   display: flex;
@@ -209,7 +212,7 @@ input, select {
 .submit-button {
   width: 100%;
   padding: 12px;
-  background-color: #007bff;
+  background-color: var(--color-primary); /* CAMBIO */
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -219,7 +222,7 @@ input, select {
 .back-button {
   flex-grow: 1;
   padding: 12px;
-  background-color: #6c757d;
+  background-color: var(--color-text-secondary); /* CAMBIO */
   color: #fff;
   border: none;
   border-radius: 8px;
