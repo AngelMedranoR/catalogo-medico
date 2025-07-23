@@ -1,7 +1,18 @@
 
+:root {
+  --color-primary: #007bff;       /* Un azul médico limpio y brillante */
+  --color-success: #28a745;       /* Verde para confirmaciones y precios */
+  --color-background: #f8f9fa;   /* Un gris muy claro para el fondo */
+  --color-surface: #ffffff;     /* Blanco puro para las tarjetas y superficies */
+  --color-text-primary: #212529;   /* Negro suave para texto principal */
+  --color-text-secondary: #6c757d; /* Gris para texto secundario y descripciones */
+  --color-border: #dee2e6;       /* Un borde muy sutil */
+}
+
+/* 2. Aplicamos los colores base a toda la página */
 body {
-  background-color: #121212;
-  color: #e0e0e0;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
   padding: 0;

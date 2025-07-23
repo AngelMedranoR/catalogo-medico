@@ -97,13 +97,14 @@ const handleAddToCart = () => {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: contain;
-  background-color: #1a1a1a;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  border: 1px solid #333;
 }
 
 /* --- Columna de Información --- */
 .product-info-container .title {
+  color: var(--color-text-primary);
   font-size: 2.8rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
@@ -113,13 +114,13 @@ const handleAddToCart = () => {
 .price {
   font-size: 2.2rem;
   font-weight: bold;
-  color: #28a745;
+  color: var(--color-success);
   margin: 0.5rem 0;
 }
 
 .stock {
   margin-bottom: 1.5rem;
-  color: #aaa;
+  color: var(--color-text-secondary);
   font-size: 1rem;
 }
 
@@ -137,7 +138,7 @@ const handleAddToCart = () => {
 
 .description {
   line-height: 1.7;
-  color: #ccc;
+  color: var(--color-text-secondary);
   margin-bottom: 2.5rem;
   white-space: pre-wrap;
 }
@@ -152,15 +153,15 @@ const handleAddToCart = () => {
 .quantity-selector {
   display: flex;
   align-items: center;
-  border: 1px solid #555;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden; /* Para que los botones hereden el borde redondeado */
 }
 
 .quantity-selector button {
-  background-color: #333;
+  background-color: var(--color-surface);
+  color: var(--color-text-secondary);
   border: none;
-  color: #fff;
   width: 45px;
   height: 45px;
   font-size: 1.8rem;
@@ -183,7 +184,7 @@ const handleAddToCart = () => {
 }
 
 .add-to-cart-button {
-  background-color: #007bff;
+  background-color: var(--color-success);
   color: white;
   border: none;
   padding: 0 30px;

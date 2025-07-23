@@ -64,7 +64,7 @@ onUnmounted(() => {
 @import url('https://fonts.googleapis.com/css?family=Roboto:700');
 
 .title-container {
-  color: #e0e0e0;
+  color: var(--color-text-primary);
   text-transform: uppercase;
   font-size: 2.5rem;
   font-weight: bold;
@@ -108,7 +108,7 @@ onUnmounted(() => {
     /* background-color: #f7f7f7f8; */
     border-color: aliceblue;
     border-radius: 8px;
-    border: #e0e0e0 solid;
+    border: solid var(--color-text-primary);
     /* height: 6vh;  */
     width: 40%;
     padding: 1px 12px;

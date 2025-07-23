@@ -31,14 +31,14 @@ const cart = useCartStore();
 
 <style scoped>
 .navbar {
-  background: rgba(20, 20, 20, 0.8);
+  background: rgba(255, 255, 255, 0.8); /* Blanco translúcido */
   backdrop-filter: blur(10px);
   padding: 1rem 0;
   position: sticky;
   top: 0;
   width: 100%;
   z-index: 1000;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--color-border); /* Borde sutil */
 }
 .container {
   max-width: 1200px;
@@ -52,9 +52,9 @@ const cart = useCartStore();
   gap: 1rem;
 }
 .brand {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: bold;
-  color: #fff;
+  color: var(--color-text-primary); /* Texto oscuro */
   text-decoration: none;
 }
 .main-nav {
@@ -69,22 +69,21 @@ const cart = useCartStore();
   display: none; /* Chrome, Safari, Opera */
 }
 .main-nav a {
-  color: #e0e0e0;
+  color: var(--color-text-secondary); /* Texto secundario */
   text-decoration: none;
-  padding: 0.5rem 0.8rem;
+  padding: 0.5rem;
   border-radius: 5px;
-  white-space: nowrap; /* Evita que el texto se parta en dos líneas */
-  flex-shrink: 0; /* Evita que los enlaces se encojan */
+  white-space: nowrap;
   transition: all 0.2s;
 }
 .main-nav a.router-link-exact-active {
-  color: #fff;
-  background-color: #007bff;
+  color: #fff; /* Texto blanco sobre el fondo primario */
+  background-color: var(--color-primary);
 }
 .cart-button {
   color: #fff;
   text-decoration: none;
-  background-color: #020a1315;
+  background-color: var(--color-primary);
   padding: 0.5rem 1rem;
   border-radius: 5px;
   display: flex;
@@ -95,6 +94,7 @@ const cart = useCartStore();
 /* --- Estilos para Móvil --- */
 @media (max-width: 767px) {
   .main-nav {
+    /* border-top: 1px solid var(--color-border); */
     /* El scroll ya está activado por defecto, aquí podemos ajustar detalles */
     gap: 0.25rem; /* Reducimos el espacio entre enlaces */
   }

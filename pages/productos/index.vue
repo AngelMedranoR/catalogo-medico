@@ -120,8 +120,8 @@ const filteredProducts = computed(() => {
   color: inherit;
 }
 .product-card {
-  background-color: #1e1e1e;
-  border: 1px solid #333;
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-border);
   border-radius: 12px;
   overflow: hidden;
   display: flex;
@@ -131,12 +131,12 @@ const filteredProducts = computed(() => {
 }
 .product-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Sombra más suave */
 }
 .image-container {
   width: 100%;
   aspect-ratio: 1 / 1; 
-  background-color: #2a2a2a;
+  background-color: var(--color-background); /* Fondo gris claro */
 }
 .product-card img {
   width: 100%;
@@ -150,6 +150,7 @@ const filteredProducts = computed(() => {
   flex-grow: 1;
 }
 .card-content h2 {
+  color: var(--color-text-primary);
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.4;
@@ -166,7 +167,7 @@ const filteredProducts = computed(() => {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
-  color: #aaa;
+  color: var(--color-text-secondary);
   margin-bottom: 1rem;
 }
 .stock svg {
@@ -181,11 +182,11 @@ const filteredProducts = computed(() => {
 .price {
   font-size: 1.1rem;
   font-weight: bold;
-  color: #28a745;
+  color: var(--color-success);
   margin: 0;
 }
 .quick-add-btn {
-  background-color: #007bff;
+  background-color: var(--color-primary);
   border: none;
   color: white;
   width: 40px;
