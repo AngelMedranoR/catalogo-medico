@@ -18,18 +18,21 @@ export const useCartStore = defineStore('cart', {
     totalPrice: (state) => {
       return state.items.reduce((total, item) => {
         // Asegurarnos de que el precio es un número
-        const price = Number(item.product.price) || 0;
+        const price = Number(item.price) || 0;
         return total + (item.quantity * price);
       }, 0);
     },
   },
   actions: {
-    addToCart(product, quantity = 1) {
-      const existingItem = this.items.find(item => item.product.id === product.id)
+    addToCart(product, quantity = 1, reference = null, itemPrice) {
+      const existingItem = this.items.find(item => 
+        item.product.id === product.id && item.reference === reference
+      );
+
       if (existingItem) {
-        existingItem.quantity += quantity
+        existingItem.quantity += quantity;
       } else {
-        this.items.push({ product, quantity })
+        this.items.push({ product, quantity, reference, price: itemPrice }); // Store the specific itemPrice
       }
     },
     removeFromCart(productId) {

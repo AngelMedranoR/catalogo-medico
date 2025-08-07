@@ -1,42 +1,46 @@
 <template>
-  <div>
-    <h1>Gestionar Categorías</h1>
+  <div class="categories-container">
+    <h1 class="title">Gestión de Categorías</h1>
 
-    <div class="form-box">
-      <h2>{{ editingCategory ? 'Editar Categoría' : 'Agregar Nueva Categoría' }}</h2>
-      <form @submit.prevent="saveCategory">
-        <input type="text" v-model="form.name" placeholder="Nombre de la categoría" required>
-        <div class="form-actions">
-          <button type="submit">{{ editingCategory ? 'Actualizar' : 'Agregar' }}</button>
-          <button v-if="editingCategory" @click="cancelEdit" type="button" class="cancel">Cancelar</button>
+    <div class="content-grid">
+      <!-- Formulario de Categoría -->
+      <div class="widget-card form-card">
+        <h2 class="widget-title">{{ editingCategory ? 'Editar Categoría' : 'Agregar Nueva Categoría' }}</h2>
+        <form @submit.prevent="saveCategory" class="category-form">
+          <div class="form-group">
+            <label for="category-name">Nombre</label>
+            <input id="category-name" type="text" v-model="form.name" placeholder="Ej. Equipos Médicos" required>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="button-primary">{{ editingCategory ? 'Actualizar' : 'Guardar' }}</button>
+            <button v-if="editingCategory" @click="cancelEdit" type="button" class="button-secondary">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Lista de Categorías -->
+      <div class="widget-card list-card">
+        <h2 class="widget-title">Categorías Existentes</h2>
+        <div v-if="categories.length > 0" class="categories-list">
+          <ul>
+            <li v-for="category in categories" :key="category.id">
+              <span>{{ category.name }}</span>
+              <div class="item-actions">
+                <button @click="editCategory(category)" class="action-btn edit-btn">✏️</button>
+                <button @click="deleteCategory(category.id)" class="action-btn delete-btn">🗑️</button>
+              </div>
+            </li>
+          </ul>
         </div>
-      </form>
-    </div>
-
-    <div class="table-container">
-      <h2>Lista de Categorías</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="category in categories" :key="category.id">
-            <td data-label="Categoría">{{ category.name }}</td>
-            <td data-label="Acciones" class="actions-cell">
-              <button @click="editCategory(category)" class="edit">Editar</button>
-              <button @click="deleteCategory(category.id)" class="delete">Borrar</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+        <p v-else class="empty-text">No hay categorías registradas.</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
+
 definePageMeta({
   layout: 'admin',
   middleware: 'auth'
@@ -49,7 +53,7 @@ const form = ref({ name: '' });
 
 async function fetchData() {
   const { data } = await supabase.from('categories').select('*').order('name');
-  categories.value = data;
+  categories.value = data || [];
 }
 
 function resetForm() {
@@ -58,26 +62,38 @@ function resetForm() {
 }
 
 async function saveCategory() {
-  if (editingCategory.value) {
-    await supabase.from('categories').update(form.value).eq('id', editingCategory.value.id);
-  } else {
-    await supabase.from('categories').insert([form.value]);
+  if (!form.value.name) return;
+  try {
+    if (editingCategory.value) {
+      const { error } = await supabase.from('categories').update({ name: form.value.name }).eq('id', editingCategory.value.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('categories').insert([{ name: form.value.name }]);
+      if (error) throw error;
+    }
+    await fetchData();
+    resetForm();
+  } catch (error) {
+    console.error('Error saving category:', error.message);
   }
-  await fetchData();
-  resetForm();
 }
 
 async function deleteCategory(id) {
   if (confirm('¿Estás seguro? Borrar una categoría puede afectar a los productos asociados.')) {
-    await supabase.from('categories').delete().eq('id', id);
-    await fetchData();
+    try {
+      const { error } = await supabase.from('categories').delete().eq('id', id);
+      if (error) throw error;
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting category:', error.message);
+    }
   }
 }
 
 function editCategory(category) {
   editingCategory.value = category;
   form.value = { ...category };
-  window.scrollTo(0, 0);
+  document.getElementById('category-name').focus();
 }
 
 function cancelEdit() {
@@ -88,38 +104,126 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
-.form-box { background-color: #1e1e1e; padding: 2rem; border-radius: 8px; margin-bottom: 2rem; }
-form { display: flex; flex-direction: column; gap: 1rem; }
-input { background-color: #333; border: 1px solid #555; color: #fff; padding: 10px; border-radius: 4px; }
-.form-actions { display: flex; gap: 1rem; }
-button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; color: #fff; }
-button[type="submit"] { background-color: #007bff; }
-button.cancel { background-color: #6c757d; }
-.edit { background-color: #ffc107; color: #000; }
-.delete { background-color: #dc3545; }
-.table-container { margin-top: 2rem; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 1rem; border-bottom: 1px solid #333; text-align: left; }
-.actions-cell { text-align: right; }
-.actions-cell button { margin-left: 0.5rem; }
+.categories-container {
+  padding: 1rem;
+  background-color: #121212;
+  color: #e0e0e0;
+  max-width: 1200px;
+  margin: 0 auto;
+}
 
-/* --- ESTILOS RESPONSIVE PARA LA TABLA --- */
-@media (max-width: 768px) {
-  .table-container { border: none; padding: 0; }
-  table, thead, tbody, th, td, tr { display: block; }
-  thead { display: none; }
-  tr { margin-bottom: 1rem; border: 1px solid #333; border-radius: 8px; padding: 1rem; }
-  td { text-align: right; padding-left: 50%; position: relative; border-bottom: 1px dashed #333; }
-  td:last-child { border-bottom: none; }
-  td::before {
-    content: attr(data-label);
-    position: absolute;
-    left: 1rem;
-    text-align: left;
-    font-weight: bold;
-    color: #00aaff;
+.title {
+  font-size: 1.8rem;
+  color: #fff;
+  margin-bottom: 2rem;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.widget-card {
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.widget-title {
+  font-size: 1.2rem;
+  margin: 0 0 1.5rem 0;
+  color: #fff;
+  border-bottom: 1px solid #333;
+  padding-bottom: 1rem;
+}
+
+/* --- Formulario --- */
+.category-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.category-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #aaa;
+}
+
+.category-form input {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.button-primary, .button-secondary {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.button-primary { background-color: #007bff; color: #fff; }
+.button-secondary { background-color: #444; color: #ccc; }
+
+/* --- Lista de Categorías --- */
+.categories-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.categories-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.categories-list li:hover { background-color: #2a2a2a; }
+
+.item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+.action-btn:hover { background-color: #333; }
+.edit-btn { color: #ffc107; }
+.delete-btn { color: #dc3545; }
+
+.empty-text {
+  color: #888;
+  text-align: center;
+  padding: 2rem;
+}
+
+@media (min-width: 992px) {
+  .content-grid {
+    grid-template-columns: 400px 1fr;
+    align-items: flex-start;
   }
-  .actions-cell { text-align: right; }
-  .actions-cell button { margin-top: 0.5rem; }
 }
 </style>

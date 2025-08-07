@@ -9,16 +9,16 @@
         <div v-for="item in cart.cartItems" :key="item.product.id" class="cart-item">
           <img :src="item.product.image_url" :alt="item.product.name" class="item-image" />
           <div class="item-details">
-            <p class="item-name">{{ item.product.name }}</p>
-            <p class="item-price">Bs. {{ formatCurrency(item.product.price) }}</p>
+            <p class="item-name">{{ item.product.name }} <span v-if="item.reference" class="item-reference">({{ item.reference }})</span></p>
+            <p class="item-price">{{ formatCurrency(item.price) }}</p>
           </div>
           <div class="quantity-selector">
             <button @click="cart.decreaseQuantity(item.product.id)">-</button>
             <span>{{ item.quantity }}</span>
             <button @click="cart.increaseQuantity(item.product.id)">+</button>
           </div>
-          <p class="item-total">Bs. {{ formatCurrency(item.product.price * item.quantity) }}</p>
-          <button @click="cart.removeFromCart(item.product.id)" class="remove-button">×</button>
+          <p class="item-total">${{ formatCurrency(item.price * item.quantity) }}</p>
+          <button @click="cart.removeFromCart(item.product.id)">×</button>
         </div>
       </div>
       
@@ -26,11 +26,11 @@
         <h2>Total del Carrito</h2>
         <div class="summary-row">
           <span>Subtotal:</span>
-          <span>Bs. {{ formatCurrency(cart.totalPrice) }}</span>
+          <span>${{ formatCurrency(cart.totalPrice) }}</span>
         </div>
         <div class="summary-row total-row">
           <span>Total:</span>
-          <span>Bs. {{ formatCurrency(cart.totalPrice) }}</span>
+          <span>${{ formatCurrency(cart.totalPrice) }}</span>
         </div>
         <button @click="showCheckoutModal = true" class="checkout-button">
           Proceder con el pedido
@@ -54,20 +54,31 @@
 <script setup>
 import { ref } from 'vue';
 import { useCartStore } from '~/stores/cart';
+import { useOrdersStore } from '~/stores/orders'; // Importa el nuevo store
 import CheckoutModal from '~/components/CheckoutModal.vue'; // Importa el nuevo componente
 
 const cart = useCartStore();
+const ordersStore = useOrdersStore(); // Instancia el store de órdenes
 const showCheckoutModal = ref(false);
 
-const formatCurrency = (value) => (typeof value === 'number' ? value.toFixed(2) : '0.00');
+const formatCurrency = (value) => (typeof value === 'number' ? `${value.toFixed(2)}` : '$0.00');
 
-const sendOrderToWhatsApp = (customerInfo) => {
+const sendOrderToWhatsApp = async (customerInfo) => {
   const phoneNumber = '584148545150'; // <-- IMPORTANTE: Reemplaza con tu número
   let message = `*¡Nuevo Pedido de Gaventex!* 🛍️\n\n`;
   message += `*--- Resumen del Pedido ---*\n`;
 
-  cart.cartItems.forEach(item => {
-    message += `• ${item.product.name} (x${item.quantity}) - Bs. ${formatCurrency(item.product.price * item.quantity)}\n`;
+  const orderProducts = cart.cartItems.map(item => {
+    const referenceText = item.reference ? ` (Ref: ${item.reference})` : '';
+    message += `• ${item.product.name}${referenceText} (x${item.quantity}) - Bs. ${formatCurrency(item.price * item.quantity)}\n`;
+    return {
+      id: item.product.id,
+      name: item.product.name,
+      quantity: item.quantity,
+      price: item.price, // Use item.price
+      variation_id: item.product.variation_id, // Asegúrate de que esto exista en tu item.product
+      reference: item.reference, // Add reference to the order product
+    };
   });
   
   message += `\n*Total del Pedido: Bs. ${formatCurrency(cart.totalPrice)}*\n\n`;
@@ -82,6 +93,20 @@ const sendOrderToWhatsApp = (customerInfo) => {
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
   
   window.open(whatsappUrl, '_blank');
+
+  // Crear la orden en Supabase
+  try {
+    await ordersStore.createOrder({
+      customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
+      customer_phone: customerInfo.phone,
+      products: orderProducts,
+      total: cart.totalPrice,
+      status: 'pending',
+    });
+  } catch (error) {
+    console.error('Error al crear la orden en Supabase:', error);
+    // Aquí podrías mostrar un mensaje al usuario o manejar el error de otra forma
+  }
   
   // Limpiar el carrito y cerrar el modal después de enviar
   cart.clearCart();
@@ -143,7 +168,7 @@ h1, h2 { margin: 0; color: var(--color-text-primary); }
   border-radius: 8px; 
 }
 
-.item-info {
+.item-details {
   display: flex;
   flex-direction: column;
   justify-content: space-between;

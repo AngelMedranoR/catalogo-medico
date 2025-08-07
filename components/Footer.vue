@@ -13,7 +13,7 @@
   background-color: #121212;
   border-top: 1px solid #333;
   padding: 2rem 0;
-  margin-top: 4rem;
+  
 }
 .container {
   max-width: 1200px;

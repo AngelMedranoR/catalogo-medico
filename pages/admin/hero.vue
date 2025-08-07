@@ -1,73 +1,83 @@
 <template>
-  <div>
-    <h1>Gestionar Slides del Hero</h1>
+  <div class="hero-container">
+    <h1 class="title">Gestión del Hero Slider</h1>
 
-    <div class="form-box">
-      <h2>{{ editingSlide ? 'Editar Slide' : 'Agregar Nuevo Slide' }}</h2>
-      <form @submit.prevent="saveSlide">
-        <input type="text" v-model="form.title" placeholder="Título del Slide" required>
-        
-        <select v-model="form.animation_style" required>
-          <option :value="null" disabled>Elige un estilo de animación</option>
-          <option value="style_one">Letras que saltan</option>
-          <option value="style_two">Letras delineadas</option>
-          <option value="style_three">Expandir Espaciado</option>
-          <option value="style_four">Letras Desordenadas</option>
-          <option value="style_five">Efecto glitch</option>
-        </select>
+    <div class="content-grid">
+      <!-- Formulario de Slide -->
+      <div class="widget-card form-card">
+        <h2 class="widget-title">{{ editingSlide ? 'Editar Slide' : 'Agregar Nuevo Slide' }}</h2>
+        <form @submit.prevent="saveSlide">
+          <div class="form-group">
+            <label for="slide-title">Título</label>
+            <input id="slide-title" type="text" v-model="form.title" required>
+          </div>
+          <div class="form-group">
+            <label for="slide-animation">Estilo de Animación</label>
+            <select id="slide-animation" v-model="form.animation_style" required>
+              <option value="style_one">Letras que saltan</option>
+              <option value="style_two">Letras delineadas</option>
+              <option value="style_three">Expandir Espaciado</option>
+              <option value="style_four">Letras Desordenadas</option>
+              <option value="style_five">Efecto glitch</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="slide-order">Orden</label>
+            <input id="slide-order" type="number" v-model.number="form.order_index">
+          </div>
+          <div class="form-group">
+            <label>Imagen de Fondo</label>
+            <div class="image-upload-area">
+              <input id="slideImageInput" type="file" @change="handleFileSelect" accept="image/*" class="file-input">
+              <label for="slideImageInput" class="file-label">
+                <span class="icon">🖼️</span>
+                <span>{{ imagePreview ? 'Cambiar Imagen' : 'Seleccionar' }}</span>
+              </label>
+              <img v-if="imagePreview" :src="imagePreview" alt="Vista previa" class="image-preview">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="form.is_active">
+              <span>Activo</span>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="button-primary" :disabled="isUploading">{{ isUploading ? 'Guardando...' : 'Guardar' }}</button>
+            <button v-if="editingSlide" @click="cancelEdit" type="button" class="button-secondary">Cancelar</button>
+          </div>
+        </form>
+      </div>
 
-        <input type="number" v-model="form.order_index" placeholder="Orden de aparición (ej: 1, 2, 3)">
-        
-        <div>
-          <label for="slideImage">Imagen de Fondo</label>
-          <input id="slideImage" type="file" @change="handleFileSelect" accept="image/*">
-          <img v-if="imagePreview" :src="imagePreview" alt="Vista previa" class="image-preview">
+      <!-- Lista de Slides -->
+      <div class="widget-card list-card">
+        <h2 class="widget-title">Slides Actuales</h2>
+        <div v-if="slides.length > 0" class="slides-list">
+          <div v-for="slide in slides" :key="slide.id" class="slide-item-card">
+            <img :src="slide.image_url || '/placeholder.png'" :alt="slide.title" class="slide-image">
+            <div class="slide-info">
+              <h4 class="slide-item-title">{{ slide.title }}</h4>
+              <p>Orden: {{ slide.order_index }}</p>
+              <span :class="['status-badge', slide.is_active ? 'status-active' : 'status-inactive']">
+                {{ slide.is_active ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <div class="slide-actions">
+              <button @click="editSlide(slide)" class="action-btn edit-btn">✏️ Editar</button>
+              <button @click="deleteSlide(slide.id)" class="action-btn delete-btn">🗑️ Borrar</button>
+            </div>
+          </div>
         </div>
-
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="form.is_active">
-          Mostrar este slide en la página de inicio
-        </label>
-
-        <div class="form-actions">
-          <button type="submit" :disabled="isUploading">{{ isUploading ? 'Guardando...' : 'Guardar Slide' }}</button>
-          <button v-if="editingSlide" @click="cancelEdit" type="button" class="cancel">Cancelar</button>
-        </div>
-      </form>
-    </div>
-
-    <div class="table-container">
-      <h2>Slides Actuales</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Orden</th>
-            <th>Título</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="slide in slides" :key="slide.id">
-            <td data-label="Orden">{{ slide.order_index }}</td>
-            <td data-label="Título">{{ slide.title }}</td>
-            <td data-label="Estado">{{ slide.is_active ? 'Activo' : 'Inactivo' }}</td>
-            <td data-label="Acciones" class="actions">
-              <button @click="editSlide(slide)" class="edit">Editar</button>
-              <button @click="deleteSlide(slide.id)" class="delete">Borrar</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+        <p v-else class="empty-text">No hay slides para mostrar.</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-definePageMeta({
-  layout: 'admin',
-  middleware: 'auth'
-});
+import { ref, onMounted } from 'vue';
+
+definePageMeta({ layout: 'admin', middleware: 'auth' });
 
 const supabase = useSupabaseClient();
 const slides = ref([]);
@@ -76,34 +86,27 @@ const isUploading = ref(false);
 const selectedFile = ref(null);
 const imagePreview = ref('');
 
-const form = ref({
-  title: '',
-  image_url: '',
-  animation_style: 'style_one',
-  order_index: 0,
-  is_active: true,
-});
+const getInitialFormState = () => ({ title: '', image_url: '', animation_style: 'style_one', order_index: 0, is_active: true });
+const form = ref(getInitialFormState());
 
 async function fetchData() {
   const { data } = await supabase.from('hero_slides').select('*').order('order_index');
-  slides.value = data;
+  slides.value = data || [];
 }
 
 function handleFileSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
   selectedFile.value = file;
-  const reader = new FileReader();
-  reader.onload = (e) => { imagePreview.value = e.target.result; };
-  reader.readAsDataURL(file);
+  imagePreview.value = URL.createObjectURL(file);
 }
 
 function resetForm() {
   editingSlide.value = null;
   selectedFile.value = null;
   imagePreview.value = '';
-  form.value = { title: '', image_url: '', animation_style: 'style_one', order_index: 0, is_active: true };
-  const fileInput = document.getElementById('slideImage');
+  form.value = getInitialFormState();
+  const fileInput = document.getElementById('slideImageInput');
   if (fileInput) fileInput.value = null;
 }
 
@@ -112,15 +115,10 @@ async function saveSlide() {
   if (selectedFile.value) {
     const fileName = `${Date.now()}-${selectedFile.value.name}`;
     const { data, error } = await supabase.storage.from('hero-images').upload(fileName, selectedFile.value);
-    if (error) {
-      console.error('Error al subir la imagen:', error);
-      alert('Hubo un error al subir la imagen.');
-      isUploading.value = false;
-      return;
-    }
-    const { data: urlData } = supabase.storage.from('hero-images').getPublicUrl(data.path);
-    form.value.image_url = urlData.publicUrl;
+    if (error) { console.error('Error uploading image:', error); isUploading.value = false; return; }
+    form.value.image_url = supabase.storage.from('hero-images').getPublicUrl(data.path).data.publicUrl;
   }
+
   try {
     if (editingSlide.value) {
       const { error } = await supabase.from('hero_slides').update({ ...form.value }).eq('id', editingSlide.value.id);
@@ -132,8 +130,7 @@ async function saveSlide() {
     await fetchData();
     resetForm();
   } catch (error) {
-    console.error('Error al guardar el slide:', error.message);
-    alert('No se pudo guardar el slide. Revisa la consola para más detalles.');
+    console.error('Error saving slide:', error.message);
   } finally {
     isUploading.value = false;
   }
@@ -144,7 +141,7 @@ function editSlide(slide) {
   form.value = { ...slide };
   imagePreview.value = slide.image_url;
   selectedFile.value = null;
-  window.scrollTo(0, 0);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function cancelEdit() {
@@ -152,15 +149,9 @@ function cancelEdit() {
 }
 
 async function deleteSlide(id) {
-  if (confirm('¿Estás seguro de que quieres borrar este slide?')) {
-    try {
-      const { error } = await supabase.from('hero_slides').delete().eq('id', id);
-      if (error) throw error;
-      await fetchData();
-    } catch (error) {
-      console.error('Error al borrar el slide:', error.message);
-      alert('No se pudo borrar el slide.');
-    }
+  if (confirm('¿Seguro que quieres borrar este slide?')) {
+    await supabase.from('hero_slides').delete().eq('id', id);
+    fetchData();
   }
 }
 
@@ -168,37 +159,54 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
-.image-preview { display: block; max-width: 200px; margin-top: 1rem; border-radius: 8px; }
-.form-box { background-color: #1e1e1e; padding: 2rem; border-radius: 8px; margin-bottom: 2rem; }
-form { display: flex; flex-direction: column; gap: 1rem; }
-input, select { background-color: #333; border: 1px solid #555; color: #fff; padding: 10px; border-radius: 4px; }
-.checkbox-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
-.form-actions { display: flex; gap: 1rem; }
-button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; color: #fff; }
-button[type="submit"] { background-color: #007bff; }
-button.cancel { background-color: #6c757d; }
-.table-container { margin-top: 2rem; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 1rem; border-bottom: 1px solid #333; text-align: left; }
-.actions button { margin-right: 0.5rem; }
-.edit { background-color: #ffc107; color: #000; }
-.delete { background-color: #dc3545; }
+.hero-container { padding: 1rem; max-width: 1200px; margin: 0 auto; }
+.title { font-size: 1.8rem; color: #fff; margin-bottom: 2rem; }
 
-/* --- ESTILOS RESPONSIVE PARA LA TABLA --- */
-@media (max-width: 768px) {
-  .table-container { border: none; padding: 0; }
-  table, thead, tbody, th, td, tr { display: block; }
-  thead { display: none; }
-  tr { margin-bottom: 1rem; border: 1px solid #333; border-radius: 8px; padding: 1rem; }
-  td { text-align: right; padding-left: 50%; position: relative; border-bottom: 1px dashed #333; }
-  td:last-child { border-bottom: none; }
-  td::before {
-    content: attr(data-label);
-    position: absolute;
-    left: 1rem;
-    text-align: left;
-    font-weight: bold;
-    color: #00aaff;
-  }
+.content-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+
+.widget-card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 1.5rem; }
+.widget-title { font-size: 1.2rem; margin: 0 0 1.5rem 0; color: #fff; border-bottom: 1px solid #333; padding-bottom: 1rem; }
+
+/* --- Formulario --- */
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 0.5rem; color: #aaa; }
+input[type="text"], input[type="number"], select { width: 100%; padding: 0.8rem; background-color: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: #e0e0e0; font-size: 1rem; }
+
+.image-upload-area { display: flex; align-items: center; gap: 1rem; }
+.file-input { display: none; }
+.file-label { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1.2rem; background-color: #444; color: #fff; border-radius: 8px; cursor: pointer; }
+.image-preview { width: 120px; height: 67.5px; border-radius: 8px; object-fit: cover; border: 2px solid #444; }
+
+.checkbox-label { display: flex; align-items: center; gap: 0.8rem; color: #ccc; cursor: pointer; }
+.checkbox-label input { width: auto; accent-color: #007bff; }
+
+.form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+.button-primary, .button-secondary { padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; }
+.button-primary { background-color: #007bff; color: #fff; }
+.button-secondary { background-color: #444; color: #ccc; }
+.button-primary:disabled { background-color: #555; cursor: not-allowed; }
+
+/* --- Lista de Slides --- */
+.slides-list { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+.slide-item-card { background-color: #242424; border-radius: 8px; display: flex; align-items: center; gap: 1rem; padding: 1rem; }
+.slide-image { width: 100px; height: 56px; object-fit: cover; border-radius: 6px; }
+.slide-info { flex-grow: 1; }
+.slide-item-title { margin: 0 0 0.25rem; color: #fff; }
+.slide-info p { margin: 0; color: #aaa; font-size: 0.9rem; }
+
+.status-badge { padding: 0.2rem 0.6rem; border-radius: 15px; font-size: 0.8rem; font-weight: bold; }
+.status-active { background-color: #5cb85c; color: #fff; }
+.status-inactive { background-color: #6c757d; color: #fff; }
+
+.slide-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+.action-btn { background: none; border: none; color: #fff; padding: 0.5rem; cursor: pointer; font-size: 0.9rem; border-radius: 6px; width: 100%; text-align: left; }
+.action-btn:hover { background-color: #333; }
+.edit-btn { color: #ffc107; }
+.delete-btn { color: #dc3545; }
+
+.empty-text { color: #888; text-align: center; padding: 2rem; }
+
+@media (min-width: 992px) {
+  .content-grid { grid-template-columns: 450px 1fr; align-items: flex-start; }
 }
 </style>

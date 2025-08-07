@@ -10,6 +10,7 @@
         <NuxtLink to="/admin/productos">Productos</NuxtLink>
         <NuxtLink to="/admin/categorias">Categorías</NuxtLink>
         <NuxtLink to="/admin/hero">Hero Slider</NuxtLink>
+        <NuxtLink to="/admin/ordenes">Órdenes</NuxtLink>
       </nav>
     </header>
 

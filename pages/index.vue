@@ -24,7 +24,7 @@
           
           <div class="price-action-row">
             <p class="price">{{ formatCurrency(product.price) }}$</p>
-            <button class="quick-add-btn" @click="quickAddToCart(product)" title="Añadir al carrito">
+            <button class="quick-add-btn" @click.prevent="openAddToCartModal(product)" title="Añadir al carrito">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M9 5.5a.5.5 0 0 0-1 0V7H6.5a.5.5 0 0 0 0 1H8v1.5a.5.5 0 0 0 1 0V8h1.5a.5.5 0 0 0 0-1H9V5.5z"/>
                 <path d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1H.5zm3.915 10L3.102 4h10.796l-1.313 7h-8.17zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
@@ -34,29 +34,45 @@
         </div>
       </div>
     </section>
+
+    <AddToCartModal 
+      v-if="showAddToCartModal" 
+      :product="selectedProductForModal"
+      @close="showAddToCartModal = false"
+      @product-added="handleProductAdded"
+    />
   </div>
 </template>
 
 <script setup>
 import HeroSlider from '~/components/HeroSlider.vue';
+import { ref, computed } from 'vue';
+import AddToCartModal from '~/components/AddToCartModal.vue'; // Import the new modal
 import { useCartStore } from '~/stores/cart';
-const cart = useCartStore();
 
+const cart = useCartStore();
 const supabase = useSupabaseClient();
 const products = ref([]);
 
+const showAddToCartModal = ref(false);
+const selectedProductForModal = ref(null);
+
 const formatCurrency = (value) => (typeof value === 'number' ? value.toFixed(2) : '0.00');
 
-const quickAddToCart = (product) => {
-  cart.addToCart(product, 1);
-  alert(`${product.name} ha sido añadido al carrito.`);
+const openAddToCartModal = (product) => {
+  selectedProductForModal.value = product;
+  showAddToCartModal.value = true;
+};
+
+const handleProductAdded = () => {
+  showAddToCartModal.value = false;
+  selectedProductForModal.value = null;
 };
 
 const { data } = await useAsyncData('featuredProducts', async () => {
   const { data } = await supabase
     .from('products')
-    // Se ha eliminado 'tags' de la consulta
-    .select('id, name, slug, image_url, price, stock')
+    .select('*, category:categories(name), product_variations(*)') // Fetch variations and category
     .limit(8);
   return data;
 });

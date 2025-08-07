@@ -49,12 +49,12 @@
         <div class="order-details">
           <h4>Productos en tu pedido:</h4>
           <div v-for="item in cart.cartItems" :key="item.product.id" class="product-row">
-            <span>{{ item.product.name }} (x{{ item.quantity }})</span>
-            <span>Bs. {{ formatCurrency(item.product.price * item.quantity) }}</span>
+            <span>{{ item.product.name }} <span v-if="item.reference">({{ item.reference }})</span> (x{{ item.quantity }})</span>
+            <span>{{ formatCurrency(item.product.price * item.quantity) }}$</span>
           </div>
           <div class="product-row total">
             <span>Total Productos:</span>
-            <span>Bs. {{ formatCurrency(cart.totalPrice) }}</span>
+            <span>{{ formatCurrency(cart.totalPrice) }}$</span>
           </div>
         </div>
 
