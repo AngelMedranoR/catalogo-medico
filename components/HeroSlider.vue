@@ -76,6 +76,7 @@ const { data: slides } = await useAsyncData('heroSlides', async () => {
   background-position: center;
   color: #fff;
   text-align: center;
+  background-color: #1900ff4d;
 }
 
 .slide-background {
