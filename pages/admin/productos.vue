@@ -54,6 +54,12 @@
               <button @click.prevent="addPredefinedVariation('L')">L</button>
               <button @click.prevent="addPredefinedVariation('XL')">XL</button>
             </div>
+            <div v-if="isVarizenCategory" class="predefined-variations">
+              <button @click.prevent="addPredefinedVariation('5cm')">5cm</button>
+              <button @click.prevent="addPredefinedVariation('10cm')">10cm</button>
+              <button @click.prevent="addPredefinedVariation('15cm')">15cm</button>
+              <button @click.prevent="addPredefinedVariation('20cm')">20cm</button>
+            </div>
             <div class="add-variation-form">
               <input v-model="newVariation.reference" type="text" placeholder="Referencia" required>
               <input v-model.number="newVariation.stock" type="number" placeholder="Stock" required>
@@ -148,9 +154,19 @@ const getInitialFormState = () => ({ name: '', slug: '', description: '', stock:
 const form = ref(getInitialFormState());
 
 const selectedCategory = computed(() => categories.value.find(cat => cat.id === form.value.category_id));
-const showVariationsSection = computed(() => selectedCategory.value?.name.toLowerCase().includes('vendas') || selectedCategory.value?.name.toLowerCase().includes('fajas'));
-const variationTitle = computed(() => selectedCategory.value?.name.toLowerCase().includes('fajas') ? 'Gestionar Tallas' : 'Gestionar Variantes');
+const showVariationsSection = computed(() => 
+  selectedCategory.value?.name.toLowerCase().includes('vendas') || 
+  selectedCategory.value?.name.toLowerCase().includes('fajas') ||
+  selectedCategory.value?.name.toLowerCase().includes('varizen')
+);
+const variationTitle = computed(() => {
+  const categoryName = selectedCategory.value?.name.toLowerCase();
+  if (categoryName.includes('fajas')) return 'Gestionar Tallas';
+  if (categoryName.includes('vendas') || categoryName.includes('varizen')) return 'Gestionar Medidas';
+  return 'Gestionar Variantes';
+});
 const isFajasCategory = computed(() => selectedCategory.value?.name.toLowerCase().includes('fajas'));
+const isVarizenCategory = computed(() => selectedCategory.value?.name.toLowerCase().includes('varizen'));
 const variationsToShow = computed(() => editingProduct.value ? productVariations.value : newProductVariations.value);
 
 watch(() => form.value.name, (newName) => {

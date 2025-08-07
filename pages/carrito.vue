@@ -10,7 +10,7 @@
           <img :src="item.product.image_url" :alt="item.product.name" class="item-image" />
           <div class="item-details">
             <p class="item-name">{{ item.product.name }} <span v-if="item.reference" class="item-reference">({{ item.reference }})</span></p>
-            <p class="item-price">{{ formatCurrency(item.price) }}</p>
+            <p class="item-price">${{ formatCurrency(item.price) }}</p>
           </div>
           <div class="quantity-selector">
             <button @click="cart.decreaseQuantity(item.product.id)">-</button>

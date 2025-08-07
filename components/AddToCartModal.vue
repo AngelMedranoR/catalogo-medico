@@ -147,11 +147,13 @@ const handleAddToCart = () => {
 
   let productToAdd = { ...props.product };
   let reference = null;
+  let priceToUse = Number(props.product.price) || 0; // Default to main product price, ensure it's a number
 
   if (hasVariations.value) {
     const selectedVariation = props.product.product_variations.find(v => v.id === selectedReference.value);
     if (!selectedVariation) return; 
     reference = selectedVariation.reference;
+    priceToUse = Number(selectedVariation.price) || 0; // Use variation price, ensure it's a number
     productToAdd.stock = selectedVariation.stock; 
     productToAdd.variation_id = selectedVariation.id; // Guardamos el ID de la variación
   } else {
@@ -159,7 +161,8 @@ const handleAddToCart = () => {
     productToAdd.variation_id = null;
   }
 
-  cart.addToCart(productToAdd, quantity.value, reference);
+  // Pass the correct price to addToCart
+  cart.addToCart(productToAdd, quantity.value, reference, priceToUse);
   
   const referenceText = reference ? ` (Ref: ${reference})` : '';
   addedMessage.value = `${quantity.value} bulto(s) de "${props.product.name}"${referenceText} añadido(s) al carrito.`

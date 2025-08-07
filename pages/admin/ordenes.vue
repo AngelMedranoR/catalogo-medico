@@ -62,6 +62,10 @@
 </template>
 
 <script setup>
+definePageMeta({
+  layout: 'admin',
+  middleware: 'auth'
+});
 import { ref, onMounted } from 'vue';
 
 const supabase = useSupabaseClient();
@@ -91,25 +95,51 @@ const confirmOrder = async (order) => {
 
   try {
     for (const item of order.products) {
-      const { data: product, error: fetchError } = await supabase
-        .from('products')
-        .select('stock')
-        .eq('id', item.id)
-        .single();
+      // Determinar si es un producto con variación o un producto simple
+      if (item.variation_id) {
+        // Es una variación, actualizar el stock en product_variations
+        const { data: variation, error: fetchVariationError } = await supabase
+          .from('product_variations')
+          .select('stock')
+          .eq('id', item.variation_id)
+          .single();
 
-      if (fetchError) {
-        console.error(`Producto no encontrado: ${item.name} (ID: ${item.id})`);
-        throw fetchError;
+        if (fetchVariationError) {
+          console.error(`Variación de producto no encontrada: ${item.name} (ID de Variación: ${item.variation_id})`);
+          throw fetchVariationError;
+        }
+
+        const newVariationStock = variation.stock - item.quantity;
+
+        const { error: updateVariationError } = await supabase
+          .from('product_variations')
+          .update({ stock: newVariationStock })
+          .eq('id', item.variation_id);
+
+        if (updateVariationError) throw updateVariationError;
+
+      } else {
+        // Es un producto simple, actualizar el stock en products
+        const { data: product, error: fetchProductError } = await supabase
+          .from('products')
+          .select('stock')
+          .eq('id', item.id)
+          .single();
+
+        if (fetchProductError) {
+          console.error(`Producto no encontrado: ${item.name} (ID: ${item.id})`);
+          throw fetchProductError;
+        }
+
+        const newProductStock = product.stock - item.quantity;
+
+        const { error: updateProductError } = await supabase
+          .from('products')
+          .update({ stock: newProductStock })
+          .eq('id', item.id);
+
+        if (updateProductError) throw updateProductError;
       }
-
-      const newStock = product.stock - item.quantity;
-
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({ stock: newStock })
-        .eq('id', item.id);
-
-      if (updateError) throw updateError;
     }
 
     const { error: orderError } = await supabase
