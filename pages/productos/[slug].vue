@@ -87,6 +87,9 @@ const { data: product } = await useAsyncData(`product-${slug}`, async () => {
     .select('*, category:categories(name), product_variations(*)') // Incluimos variantes y categoría
     .eq('slug', slug)
     .single();
+  if (data && data.product_variations) {
+    data.product_variations = [...data.product_variations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }
   return data;
 });
 

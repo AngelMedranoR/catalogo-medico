@@ -72,12 +72,19 @@
               <input v-model.number="newVariation.price" type="number" step="0.01" placeholder="Precio ($)" required>
               <button @click.prevent="addVariationWrapper" type="button" class="button-add">Agregar</button>
             </div>
-            <ul v-if="variationsToShow.length > 0" class="variations-list">
-              <li v-for="v in variationsToShow" :key="v.id">
+            <ul v-if="variationsToShow.length > 0" class="variations-list" @dragover.prevent @drop="onDropVariation">
+<li v-for="(v, idx) in variationsToShow" :key="v.id" draggable="true"
+    @dragstart="onDragStartVariation(idx)"
+    @dragover.prevent
+    :class="{ 'dragging': draggingVariationIdx === idx }"
+    @touchstart="onTouchStartVariation(idx)"
+    @touchmove="onTouchMoveVariation"
+    @touchend="onTouchEndVariation">
                 <span>{{ v.reference }}</span>
                 <input type="number" v-model.number="v.stock" @change="editingProduct && updateVariation(v)">
                 <input type="number" step="0.01" v-model.number="v.price" @change="editingProduct && updateVariation(v)">
                 <button @click.prevent="deleteVariation(v.id)" class="delete-btn">🗑️</button>
+                <span v-if="draggingVariationIdx === idx" style="opacity:0.5;">(Arrastrando)</span>
               </li>
             </ul>
           </div>
@@ -137,6 +144,68 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch, computed } from 'vue';
+// Soporte touch básico para drag and drop en móviles
+let touchStartIdx = null;
+let touchOverIdx = null;
+const onTouchStartVariation = (idx) => {
+  touchStartIdx = idx;
+};
+const onTouchMoveVariation = (e) => {
+  const touch = e.touches[0];
+  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (!target) return;
+  const li = target.closest('li');
+  if (!li) return;
+  const parent = li.parentNode;
+  touchOverIdx = Array.from(parent.children).indexOf(li);
+};
+const onTouchEndVariation = () => {
+  if (touchStartIdx !== null && touchOverIdx !== null && touchStartIdx !== touchOverIdx) {
+    const arr = variationsToShow.value;
+    const moved = arr.splice(touchStartIdx, 1)[0];
+    arr.splice(touchOverIdx, 0, moved);
+    if (editingProduct.value) {
+      arr.forEach(async (v, i) => {
+        if (v.order !== i) {
+          v.order = i;
+          await supabase.from('product_variations').update({ order: i }).eq('id', v.id);
+        }
+      });
+    }
+  }
+  touchStartIdx = null;
+  touchOverIdx = null;
+};
+
+// Drag and drop para variantes
+const draggingVariationIdx = ref(null);
+const onDragStartVariation = (idx) => {
+  draggingVariationIdx.value = idx;
+};
+const onDropVariation = (e) => {
+  if (draggingVariationIdx.value === null) return;
+  const target = e.target.closest('li');
+  if (!target) return;
+  const targetIdx = Array.from(target.parentNode.children).indexOf(target);
+  if (targetIdx === draggingVariationIdx.value) {
+    draggingVariationIdx.value = null;
+    return;
+  }
+  // Reordenar en el array
+  const arr = variationsToShow.value;
+  const moved = arr.splice(draggingVariationIdx.value, 1)[0];
+  arr.splice(targetIdx, 0, moved);
+  // Actualizar el campo order en la base de datos si está editando
+  if (editingProduct.value) {
+    arr.forEach(async (v, i) => {
+      if (v.order !== i) {
+        v.order = i;
+        await supabase.from('product_variations').update({ order: i }).eq('id', v.id);
+      }
+    });
+  }
+  draggingVariationIdx.value = null;
+};
 import { Cropper } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
 
@@ -268,8 +337,8 @@ const editProduct = async (product) => {
   newProductVariations.value = [];
 
   if (showVariationsSection.value) {
-    const { data, error } = await supabase.from('product_variations').select('*').eq('product_id', product.id).order('reference');
-    productVariations.value = error ? [] : data;
+  const { data, error } = await supabase.from('product_variations').select('*').eq('product_id', product.id).order('order', { ascending: true });
+  productVariations.value = error ? [] : data;
   } else {
     productVariations.value = [];
   }
@@ -513,6 +582,9 @@ textarea {
   padding: 0.5rem;
   border-radius: 7px;
   box-shadow: 0 1px 4px 0 rgba(0,0,0,0.07);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
 }
 .variations-list li span { flex-grow: 1; }
 .variations-list li input { width: 80px; text-align: center; }
