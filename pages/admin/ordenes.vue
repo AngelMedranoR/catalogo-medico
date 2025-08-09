@@ -172,6 +172,72 @@ const formatDate = (date) => new Date(date).toLocaleDateString('es-VE', { day: '
 </script>
 
 <style scoped>
+/* --- Mejoras Responsive para Móviles --- */
+@media (max-width: 479px) {
+  .orders-container {
+    padding: 0.3rem 0.1rem;
+  }
+  .title {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+  .loading-state, .empty-state {
+    padding: 2rem 0.5rem;
+    border-radius: 7px;
+  }
+  .orders-list {
+    gap: 0.7rem;
+  }
+  .order-card {
+    border-radius: 7px;
+  }
+  .card-header {
+    padding: 0.7rem 0.7rem;
+  }
+  .customer-name {
+    font-size: 1rem;
+  }
+  .order-date {
+    font-size: 0.7rem;
+  }
+  .status-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+  }
+  .card-body {
+    padding: 0.7rem;
+  }
+  .detail-row {
+    margin-bottom: 0.5rem;
+    font-size: 0.97rem;
+  }
+  .total-price {
+    font-size: 1rem;
+  }
+  .products-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+  .products-title {
+    font-size: 0.95rem;
+  }
+  .products-list-items li {
+    padding: 0.2rem 0;
+    font-size: 0.97rem;
+  }
+  .product-quantity {
+    font-size: 0.97rem;
+  }
+  .card-actions {
+    grid-template-columns: 1fr;
+  }
+  .action-button {
+    padding: 0.7rem;
+    font-size: 0.97rem;
+    border-radius: 6px;
+  }
+}
 .orders-container {
   padding: 1rem;
   background-color: #121212;

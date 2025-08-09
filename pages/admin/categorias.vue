@@ -104,6 +104,55 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
+/* --- Mejoras Responsive para Móviles --- */
+@media (max-width: 479px) {
+  .categories-container {
+    padding: 0.4rem 0.1rem;
+  }
+  .title {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .content-grid {
+    gap: 0.7rem;
+  }
+  .widget-card {
+    padding: 0.7rem 0.3rem;
+    border-radius: 7px;
+  }
+  .widget-title {
+    font-size: 1rem;
+    padding-bottom: 0.7rem;
+  }
+  .category-form input {
+    padding: 0.6rem;
+    font-size: 0.95rem;
+    border-radius: 6px;
+  }
+  .form-actions {
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .button-primary, .button-secondary {
+    padding: 0.6rem 1rem;
+    font-size: 0.95rem;
+    border-radius: 6px;
+  }
+  .categories-list li {
+    padding: 0.5rem;
+    border-radius: 6px;
+    font-size: 0.97rem;
+  }
+  .action-btn {
+    font-size: 1rem;
+    padding: 0.3rem;
+    border-radius: 6px;
+  }
+  .empty-text {
+    padding: 1rem;
+    font-size: 0.98rem;
+  }
+}
 .categories-container {
   padding: 1rem;
   background-color: #121212;

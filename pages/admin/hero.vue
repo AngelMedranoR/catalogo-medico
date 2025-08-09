@@ -159,6 +159,85 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
+/* --- Mejoras Responsive para Móviles --- */
+@media (max-width: 479px) {
+  .hero-container {
+    padding: 0.4rem 0.1rem;
+  }
+  .title {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .content-grid {
+    gap: 0.7rem;
+  }
+  .widget-card {
+    padding: 0.7rem 0.3rem;
+    border-radius: 7px;
+  }
+  .widget-title {
+    font-size: 1rem;
+    padding-bottom: 0.7rem;
+  }
+  .form-group label {
+    font-size: 0.97rem;
+  }
+  input[type="text"], input[type="number"], select {
+    padding: 0.6rem;
+    font-size: 0.95rem;
+    border-radius: 6px;
+  }
+  .image-upload-area {
+    gap: 0.5rem;
+  }
+  .file-label {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.95rem;
+    border-radius: 6px;
+  }
+  .image-preview {
+    width: 70px;
+    height: 40px;
+    border-radius: 6px;
+  }
+  .form-actions {
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .button-primary, .button-secondary {
+    padding: 0.6rem 1rem;
+    font-size: 0.95rem;
+    border-radius: 6px;
+  }
+  .slides-list {
+    gap: 0.5rem;
+  }
+  .slide-item-card {
+    border-radius: 6px;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+  .slide-image {
+    width: 60px;
+    height: 34px;
+    border-radius: 4px;
+  }
+  .slide-item-title {
+    font-size: 0.98rem;
+  }
+  .slide-actions {
+    gap: 0.2rem;
+  }
+  .action-btn {
+    font-size: 0.95rem;
+    padding: 0.3rem;
+    border-radius: 5px;
+  }
+  .empty-text {
+    padding: 1rem;
+    font-size: 0.98rem;
+  }
+}
 .hero-container { padding: 1rem; max-width: 1200px; margin: 0 auto; }
 .title { font-size: 1.8rem; color: #fff; margin-bottom: 2rem; }
 

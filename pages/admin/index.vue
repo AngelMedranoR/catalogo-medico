@@ -114,6 +114,62 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
+/* --- Mejoras Responsive para Móviles --- */
+@media (max-width: 479px) {
+  .dashboard-container {
+    padding: 0.3rem 0.1rem;
+  }
+  .title {
+    font-size: 1.1rem;
+    margin-bottom: 0.3rem;
+  }
+  .subtitle {
+    font-size: 0.98rem;
+    margin-bottom: 1rem;
+  }
+  .metrics-grid {
+    gap: 0.7rem;
+    margin-bottom: 1.2rem;
+  }
+  .metric-card {
+    padding: 0.7rem;
+    border-radius: 7px;
+    gap: 0.7rem;
+  }
+  .metric-icon {
+    font-size: 1.5rem;
+    padding: 0.5rem;
+    border-radius: 50%;
+  }
+  .metric-info .metric-value {
+    font-size: 1.1rem;
+  }
+  .tables-grid {
+    gap: 0.7rem;
+  }
+  .table-widget {
+    border-radius: 7px;
+  }
+  .widget-title {
+    font-size: 0.98rem;
+    padding: 0.7rem 1rem;
+  }
+  .widget-content {
+    padding: 0.7rem;
+  }
+  .item-list li {
+    padding: 0.5rem 0;
+    font-size: 0.97rem;
+  }
+  .stock-badge {
+    font-size: 0.8rem;
+    padding: 0.1rem 0.4rem;
+  }
+  .empty-text {
+    padding: 0.7rem;
+    font-size: 0.98rem;
+  }
+}
 .dashboard-container {
   padding: 1rem;
   background-color: #121212;
