@@ -54,6 +54,12 @@
               <button @click.prevent="addPredefinedVariation('L')">L</button>
               <button @click.prevent="addPredefinedVariation('XL')">XL</button>
             </div>
+            <div v-if="isFajasMultiusosCategory" class="predefined-variations">
+                <button @click.prevent="addPredefinedVariation('Talla Única')">Talla Única</button>
+                <button @click.prevent="addPredefinedVariation('Post-parto')">Post-parto</button>
+                <button @click.prevent="addPredefinedVariation('Moldeadora')">Moldeadora</button>
+                <button @click.prevent="addPredefinedVariation('Post-quirúrgica')">Post-quirúrgica</button>
+            </div>
             <div v-if="isVarizenCategory" class="predefined-variations">
               <button @click.prevent="addPredefinedVariation('5cm')">5cm</button>
               <button @click.prevent="addPredefinedVariation('10cm')">10cm</button>
@@ -161,11 +167,16 @@ const showVariationsSection = computed(() =>
 );
 const variationTitle = computed(() => {
   const categoryName = selectedCategory.value?.name.toLowerCase();
+  if (categoryName.includes('fajas multiusos')) return 'Gestionar Referencias';
   if (categoryName.includes('fajas')) return 'Gestionar Tallas';
   if (categoryName.includes('vendas') || categoryName.includes('varizen')) return 'Gestionar Medidas';
   return 'Gestionar Variantes';
 });
-const isFajasCategory = computed(() => selectedCategory.value?.name.toLowerCase().includes('fajas'));
+const isFajasMultiusosCategory = computed(() => selectedCategory.value?.name.toLowerCase().includes('fajas multiusos'));
+const isFajasCategory = computed(() => {
+    const name = selectedCategory.value?.name.toLowerCase();
+    return name && name.includes('fajas') && !name.includes('fajas multiusos');
+});
 const isVarizenCategory = computed(() => selectedCategory.value?.name.toLowerCase().includes('varizen'));
 const variationsToShow = computed(() => editingProduct.value ? productVariations.value : newProductVariations.value);
 
@@ -325,50 +336,51 @@ onMounted(fetchData);
 
 <style scoped>
 /* --- Contenedor Principal --- */
-.products-container { padding: 1rem; max-width: 1200px; margin: 0 auto; }
-.title { font-size: 1.8rem; color: #fff; margin-bottom: 2rem; }
+.products-container { padding: 0.5rem; max-width: 1200px; margin: 0 auto; }
+.title { font-size: 1.8rem; color: #fff; margin-bottom: 2rem; text-align: center; }
 
 /* --- Tarjeta Contenedora --- */
-.widget-card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; }
+.widget-card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 1rem; margin-bottom: 2rem; }
 .widget-title { font-size: 1.2rem; margin: 0 0 1.5rem 0; color: #fff; border-bottom: 1px solid #333; padding-bottom: 1rem; }
 
 /* --- Formulario --- */
 .form-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-.form-group label { display: block; margin-bottom: 0.5rem; color: #aaa; }
+.form-group label { display: block; margin-bottom: 0.5rem; color: #aaa; font-size: 0.9rem; }
 input, select, textarea { width: 100%; padding: 0.8rem; background-color: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: #e0e0e0; font-size: 1rem; }
 textarea { min-height: 100px; resize: vertical; }
 
 /* --- Carga de Imagen --- */
-.image-upload-area { display: flex; align-items: center; gap: 1rem; }
+.image-upload-area { display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; }
 .file-input { width: 0; height: 0; opacity: 0; overflow: hidden; position: absolute; z-index: -1; }
 .file-label { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1.2rem; background-color: #444; color: #fff; border-radius: 8px; cursor: pointer; }
-.image-preview { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; border: 2px solid #444; }
+.image-preview { width: 100px; height: 100px; border-radius: 8px; object-fit: cover; border: 2px solid #444; }
 
 /* --- Sección de Stock/Variantes --- */
 .stock-section { background-color: #242424; padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; }
 .section-subtitle { font-size: 1.1rem; color: #00aaff; margin: 0 0 1rem 0; }
 .predefined-variations { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .predefined-variations button { background-color: #007bff; color: #fff; padding: 0.5rem 1rem; border-radius: 20px; border: none; cursor: pointer; }
-.add-variation-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 1rem; }
-.add-variation-form input { margin-bottom: 0; } /* Override default form-group margin */
-.button-add { background-color: #28a745; color: #fff; padding: 0.5rem 1rem; border-radius: 8px; border: none; cursor: pointer; }
+
+.add-variation-form { display: grid; grid-template-columns: 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+.add-variation-form input { margin-bottom: 0; }
+.button-add { background-color: #28a745; color: #fff; padding: 0.8rem 1rem; border-radius: 8px; border: none; cursor: pointer; width: 100%; }
 
 .variations-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
-.variations-list li { display: flex; align-items: center; gap: 0.5rem; background-color: #2a2a2a; padding: 0.5rem; border-radius: 6px; }
-.variations-list li span { flex-grow: 1; }
-.variations-list li input { width: 80px; text-align: center; }
+.variations-list li { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 0.5rem; background-color: #2a2a2a; padding: 0.5rem; border-radius: 6px; }
+.variations-list li span { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.variations-list li input { width: 70px; text-align: center; }
 .delete-btn { background: none; border: none; color: #dc3545; font-size: 1.2rem; cursor: pointer; }
 
 /* --- Acciones del Formulario --- */
-.form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end; }
-.button-primary, .button-secondary { padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; }
+.form-actions { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
+.button-primary, .button-secondary { width: 100%; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; }
 .button-primary { background-color: #007bff; color: #fff; }
 .button-secondary { background-color: #444; color: #ccc; }
 .button-primary:disabled { background-color: #555; cursor: not-allowed; }
 
 /* --- Modal de Recorte --- */
-.cropper-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.cropper-content { background: #1e1e1e; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; }
+.cropper-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+.cropper-content { background: #1e1e1e; padding: 1.5rem; border-radius: 12px; width: 100%; max-width: 500px; }
 .cropper-title { margin: 0 0 1.5rem 0; text-align: center; }
 .cropper { height: 300px; }
 .cropper-actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
@@ -376,7 +388,7 @@ textarea { min-height: 100px; resize: vertical; }
 /* --- Lista de Productos --- */
 .products-list { display: grid; grid-template-columns: 1fr; gap: 1rem; }
 .product-item-card { background-color: #242424; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
-.product-image { width: 100%; height: 180px; object-fit: cover; }
+.product-image { width: 100%; height: 200px; object-fit: cover; }
 .product-info { padding: 1rem; flex-grow: 1; }
 .product-name { margin: 0 0 0.25rem; font-size: 1.1rem; color: #fff; }
 .product-category, .product-price { color: #aaa; margin: 0.25rem 0; }
@@ -388,16 +400,39 @@ textarea { min-height: 100px; resize: vertical; }
 .action-btn { flex-grow: 1; background: none; border: none; color: #fff; padding: 0.8rem; cursor: pointer; font-size: 0.9rem; }
 .edit-btn { color: #ffc107; }
 .delete-btn { color: #dc3545; }
+.empty-text { text-align: center; color: #777; padding: 2rem; }
 
 /* --- Media Queries --- */
+@media (min-width: 576px) {
+  .add-variation-form { grid-template-columns: 1fr 1fr; }
+  .add-variation-form input:first-child { grid-column: span 2; }
+  .variations-list li { display: flex; align-items: center; }
+}
+
 @media (min-width: 640px) {
+  .products-container { padding: 1.5rem; }
+  .widget-card { padding: 2rem; }
   .form-grid { grid-template-columns: 1fr 1fr; }
   .form-group.span-2 { grid-column: span 2; }
-  .products-list { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+}
+
+@media (min-width: 768px) {
+  .title { text-align: left; }
+  .image-upload-area { flex-direction: row; align-items: center; }
+  .add-variation-form { grid-template-columns: 2fr 1fr 1fr auto; }
+  .add-variation-form input:first-child { grid-column: auto; }
+  .button-add { width: auto; }
+  .form-actions { flex-direction: row; justify-content: flex-end; }
+  .button-primary, .button-secondary { width: auto; }
+  .products-list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .product-item-card { flex-direction: row; }
+  .product-image { width: 140px; height: auto; }
+  .product-actions { flex-direction: column; justify-content: center; }
 }
 
 @media (min-width: 992px) {
   .products-container { padding: 2rem; }
   .title { font-size: 2.2rem; }
+  .products-list { grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); }
 }
 </style>
