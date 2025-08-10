@@ -9,8 +9,11 @@ export function useProductBadges() {
       if (lowerCaseName.includes('1.5 metros') || lowerCaseName.includes('1.5metros') || lowerCaseName.includes('4.0 metros') || lowerCaseName.includes('4.0metros')) {
         badges.push('Compresión Suave');
       }
-      if (lowerCaseName.includes('1.0 metros') || lowerCaseName.includes('1.0metros')) {
+      if (lowerCaseName.includes('1.0 metros') || lowerCaseName.includes('1.0 metros')) {
         badges.push('Compresión Media');
+      }
+      if (lowerCaseName.includes('1.0metros') || lowerCaseName.includes('1.0metros')) {
+        badges.push('Compresión Fuerte');
       }
     }
 

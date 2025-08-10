@@ -7,8 +7,11 @@ export function useCompressionBadge() {
     if (lowerCaseName.includes('1.5 metros') || lowerCaseName.includes('1.5metros') || lowerCaseName.includes('4.0 metros') || lowerCaseName.includes('4.0metros')) {
       return 'Suave';
     }
-    if (lowerCaseName.includes('1.0 metros') || lowerCaseName.includes('1.0metros')) {
+    if (lowerCaseName.includes('1.0 metros') || lowerCaseName.includes('1.0 metros')) {
       return 'Media';
+    }
+    if (lowerCaseName.includes('1.0metros') || lowerCaseName.includes('1.0metros')) {
+      return 'Fuerte';
     }
     return null;
   };

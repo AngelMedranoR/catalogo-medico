@@ -81,6 +81,9 @@ main {
 .badge-compresión-media {
   background-color: #fd7e14;
 }
+.badge-compresión-fuerte {
+  background-color: #fd1414;
+}
 
 .badge-22cm {
   background-color: #6f42c1; /* Purple */
