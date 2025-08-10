@@ -29,6 +29,18 @@
             <span class="detail-value">{{ order.customer_phone }}</span>
           </div>
           <div class="detail-row">
+            <span class="detail-label">RIF:</span>
+            <span class="detail-value">{{ order.rif }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Entrega:</span>
+            <span class="detail-value">{{ order.delivery_method }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Pago:</span>
+            <span class="detail-value">{{ order.payment_method }}</span>
+          </div>
+          <div class="detail-row">
             <span class="detail-label">Total:</span>
             <span class="detail-value total-price">${{ formatCurrency(order.total) }}</span>
           </div>

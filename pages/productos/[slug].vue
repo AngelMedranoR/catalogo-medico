@@ -2,26 +2,42 @@
   <div class="container">
     <div v-if="product" class="product-detail-layout">
       <div class="product-image-container">
-        <img :src="product.image_url" :alt="product.name" />
+        <div class="product-badges-container">
+          <span v-for="(badge, index) in getProductBadges(product.name)" :key="badge"
+                :class="['product-badge', 'badge-' + badge.toLowerCase().replace(/\s/g, '-')]"
+                :style="{ top: (index * 2.5) + 'rem' }">
+            {{ badge }}
+          </span>
+        </div>
+        <Swiper
+          v-if="productImages.length > 0"
+          :modules="[Navigation, Pagination]"
+          :navigation="true"
+          :pagination="{ clickable: true }"
+          class="product-swiper"
+        >
+          <SwiperSlide v-for="(img, idx) in productImages" :key="idx">
+            <img :src="img" :alt="product.name + ' imagen ' + (idx+1)" />
+          </SwiperSlide>
+        </Swiper>
       </div>
-
       <div class="product-info-container">
         <h1>{{ product.name }}</h1>
         <p class="price">{{ formatCurrency(displayPrice) }}$</p>
         
         <!-- Stock General -->
         <p class="stock" v-if="!hasVariations">
-          Disponibles: {{ product.stock }} bultos
+          Disponibles: {{ isFajasCategory ? product.stock + ' unidades' : product.stock + ' bultos' }}
         </p>
 
         <p class="description">{{ product.description }}</p>
 
         <!-- Sección de Variantes -->
-        <div v-if="hasVariations" class="variations-container">
+        <div class="variations-container">
           <h3 class="variations-title">{{ variationTitle }}</h3>
           <div class="references">
             <label 
-              v-for="variation in product.product_variations" 
+              v-for="variation in (Array.isArray(product.product_variations) ? product.product_variations : [])" 
               :key="variation.id" 
               class="reference-label"
               :class="{ 'selected': selectedReference === variation.id, 'out-of-stock': variation.stock === 0 }"
@@ -38,7 +54,7 @@
             </label>
           </div>
           <p v-if="selectedVariationStock !== null" class="stock-indicator">
-            Disponibles: {{ selectedVariationStock }} bultos
+            {{ isFajasCategory ? `Disponible: ${selectedVariationStock} unidad${selectedVariationStock === 1 ? '' : 'es'}` : `Disponibles: ${selectedVariationStock} bultos` }}
           </p>
         </div>
 
@@ -70,6 +86,11 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useCartStore } from '~/stores/cart';
+import { Swiper, SwiperSlide } from 'swiper/vue';
+import { Navigation, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
 
 const route = useRoute();
 const cart = useCartStore();
@@ -87,15 +108,25 @@ const { data: product } = await useAsyncData(`product-${slug}`, async () => {
     .select('*, category:categories(name), product_variations(*)') // Incluimos variantes y categoría
     .eq('slug', slug)
     .single();
-  if (data && data.product_variations) {
+  if (data && Array.isArray(data.product_variations)) {
     data.product_variations = [...data.product_variations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
   return data;
 });
 
 // --- Propiedades Computadas para manejar la lógica de UI ---
+const productImages = computed(() => {
+  if (!product.value) return [];
+  const imgs = [product.value.image_url, product.value.image_url_2, product.value.image_url_3];
+  return imgs.filter(Boolean);
+});
+
 const hasVariations = computed(() => {
-  return product.value && product.value.product_variations && product.value.product_variations.length > 0;
+  return product.value && Array.isArray(product.value.product_variations) && product.value.product_variations.length > 0;
+});
+
+const isFajasCategory = computed(() => {
+  return product.value && product.value.category && product.value.category.name.toLowerCase().includes('faja');
 });
 
 const variationTitle = computed(() => {
@@ -108,7 +139,9 @@ const variationTitle = computed(() => {
 
 const selectedVariation = computed(() => {
   if (!selectedReference.value || !hasVariations.value) return null;
-  return product.value.product_variations.find(v => v.id === selectedReference.value);
+  return Array.isArray(product.value?.product_variations)
+    ? product.value.product_variations.find(v => v.id === selectedReference.value)
+    : null;
 });
 
 const selectedVariationStock = computed(() => {
@@ -186,7 +219,11 @@ const handleAddToCart = () => {
   cart.addToCart(productToAdd, quantity.value, reference, priceToUse);
   
   const referenceText = reference ? ` (Ref: ${reference})` : '';
-  addedMessage.value = `${quantity.value} bulto(s) de "${product.value.name}"${referenceText} añadido(s) al carrito.`
+  if (isFajasCategory.value) {
+    addedMessage.value = `${quantity.value} unidad(es) de "${product.value.name}"${referenceText} añadida(s) al carrito.`
+  } else {
+    addedMessage.value = `${quantity.value} bulto(s) de "${product.value.name}"${referenceText} añadido(s) al carrito.`
+  }
   setTimeout(() => { addedMessage.value = ''; }, 3500);
 };
 
@@ -195,9 +232,26 @@ watch(selectedReference, () => {
   quantity.value = 1;
 });
 
+const { getProductBadges } = useProductBadges();
 </script>
 
 <style scoped>
+/* Mostrar varias imágenes */
+.product-swiper {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 0 auto;
+}
+.product-swiper img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #eee;
+}
+
 /* --- ESTILOS MEJORADOS Y RESPONSIVE --- */
 .container {
   max-width: 1200px;
@@ -220,6 +274,8 @@ watch(selectedReference, () => {
   background-color: var(--color-surface); /* Fondo para el layout */
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); /* Sombra suave */
+  width: 100%; /* Ensure it takes full width */
+  margin: 0 auto; /* Center it within its parent */
 }
 
 /* --- Columna de la Imagen --- */
@@ -427,6 +483,9 @@ watch(selectedReference, () => {
 
 /* --- Media Query para Móviles --- */
 @media (max-width: 820px) {
+  .container {
+    padding: 0 1rem;
+  }
   .product-detail-layout {
     grid-template-columns: 1fr;
     gap: 2rem;

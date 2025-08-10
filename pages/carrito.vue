@@ -64,13 +64,27 @@ const showCheckoutModal = ref(false);
 const formatCurrency = (value) => (typeof value === 'number' ? `${value.toFixed(2)}` : '$0.00');
 
 const sendOrderToWhatsApp = async (customerInfo) => {
-  const phoneNumber = '584148545150'; // <-- IMPORTANTE: Reemplaza con tu número
-  let message = `*¡Nuevo Pedido de Gaventex!* 🛍️\n\n`;
-  message += `*--- Resumen del Pedido ---*\n`;
+  const phoneNumber = '584143879001'; // <-- IMPORTANTE: Reemplaza con tu número
+  let message = `*¡Nuevo Pedido de Gaventex!* 🛍️
+
+`;
+  message += `*--- Resumen del Pedido ---*
+`;
 
   const orderProducts = cart.cartItems.map(item => {
     const referenceText = item.reference ? ` (Ref: ${item.reference})` : '';
-    message += `• ${item.product.name}${referenceText} (x${item.quantity}) - Bs. ${formatCurrency(item.price * item.quantity)}\n`;
+    const categoryName = item.product.category ? item.product.category.name.toLowerCase() : '';
+    const isFaja = categoryName.includes('faja');
+    
+    let quantityText;
+    if (isFaja) {
+      quantityText = `x${item.quantity} ${item.quantity === 1 ? 'unidad' : 'unidades'}`;
+    } else {
+      quantityText = `x${item.quantity} ${item.quantity === 1 ? 'bulto' : 'bultos'}`;
+    }
+    
+    message += `• ${item.product.name}${referenceText} (${quantityText}) - ${formatCurrency(item.price * item.quantity)}$.
+`;
     return {
       id: item.product.id,
       name: item.product.name,
@@ -81,13 +95,23 @@ const sendOrderToWhatsApp = async (customerInfo) => {
     };
   });
   
-  message += `\n*Total del Pedido: Bs. ${formatCurrency(cart.totalPrice)}*\n\n`;
-  message += `*--- Datos del Cliente ---*\n`;
-  message += `*Nombre:* ${customerInfo.firstName} ${customerInfo.lastName}\n`;
-  message += `*Cédula:* ${customerInfo.cedula}\n`;
-  message += `*Teléfono:* ${customerInfo.phone}\n`;
-  message += `*Método de Entrega:* ${customerInfo.deliveryMethod}\n`;
-  message += `*Método de Pago:* ${customerInfo.paymentMethod}\n\n`;
+  message += `
+*Total del Pedido: ${formatCurrency(cart.totalPrice)}$.*
+
+`;
+  message += `*--- Datos del Cliente ---*
+`;
+  message += `*Nombre:* ${customerInfo.nameOrCompany}
+`;
+  message += `*RIF:* ${customerInfo.rif}
+`;
+  message += `*Teléfono:* ${customerInfo.phone}
+`;
+  message += `*Método de Entrega:* ${customerInfo.deliveryMethod}
+`;
+  message += `*Método de Pago:* ${customerInfo.paymentMethod}
+
+`;
   message += `¡Gracias!`;
 
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
@@ -97,8 +121,11 @@ const sendOrderToWhatsApp = async (customerInfo) => {
   // Crear la orden en Supabase
   try {
     await ordersStore.createOrder({
-      customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
+      customer_name: customerInfo.nameOrCompany,
       customer_phone: customerInfo.phone,
+      rif: customerInfo.rif,
+      delivery_method: customerInfo.deliveryMethod,
+      payment_method: customerInfo.paymentMethod,
       products: orderProducts,
       total: cart.totalPrice,
       status: 'pending',

@@ -2,7 +2,7 @@
   <div>
     <header class="navbar">
       <div class="container navbar-content">
-        <NuxtLink to="/" class="brand">Gaventex</NuxtLink>
+        <NuxtLink to="/" class="brand">Gaventex de Venezuela</NuxtLink>
 
         <nav class="main-nav">
           <NuxtLink to="/">Inicio</NuxtLink>
@@ -60,8 +60,9 @@ const cart = useCartStore();
 .main-nav {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap; /* ADDED */
   /* El truco para el scroll horizontal en móvil */
-  overflow-x: auto;
+  /* overflow-x: auto; */ /* REMOVED */
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
@@ -93,10 +94,19 @@ const cart = useCartStore();
 
 /* --- Estilos para Móvil --- */
 @media (max-width: 767px) {
+  .navbar-content {
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Align items to the center */
+    gap: 0.5rem; /* Adjust gap */
+  }
+  .brand {
+    width: 100%; /* Make brand take full width */
+    text-align: center; /* Center brand text */
+  }
   .main-nav {
-    /* border-top: 1px solid var(--color-border); */
-    /* El scroll ya está activado por defecto, aquí podemos ajustar detalles */
-    gap: 0.25rem; /* Reducimos el espacio entre enlaces */
+    width: 100%; /* Make main-nav take full width */
+    justify-content: center; /* Center nav items */
+    gap: 0.5rem; /* Adjust gap */
   }
   .cart-text {
     /* Ocultamos el texto del botón del carrito para ahorrar espacio */

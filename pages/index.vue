@@ -13,6 +13,13 @@
           <NuxtLink :to="`/productos/${product.slug}`" class="product-main-link">
             <div class="image-container">
               <img :src="product.image_url" :alt="product.name" />
+              <div class="product-badges-container">
+                <span v-for="(badge, index) in getProductBadges(product.name)" :key="badge"
+                      :class="['product-badge', 'badge-' + badge.toLowerCase().replace(/\s/g, '-')]"
+                      :style="{ top: (index * 2.5) + 'rem' }">
+                  {{ badge }}
+                </span>
+              </div>
               <div class="hover-overlay">
                 <span>Ver Detalles</span>
               </div>
@@ -80,6 +87,8 @@ const { data } = await useAsyncData('featuredProducts', async () => {
 if (data.value) {
   products.value = data.value;
 }
+
+const { getProductBadges } = useProductBadges();
 </script>
 
 <style scoped>

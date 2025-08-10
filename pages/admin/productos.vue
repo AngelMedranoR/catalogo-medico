@@ -32,14 +32,16 @@
             <textarea id="product-description" v-model="form.description"></textarea>
           </div>
           <div class="form-group span-2">
-            <label>Imagen del Producto</label>
+            <label>Imágenes del Producto (máx. 3)</label>
             <div class="image-upload-area">
-              <input id="productImageInput" type="file" @change="handleFileSelect" accept="image/*" class="file-input">
-              <label for="productImageInput" class="file-label">
-                <span class="icon">🖼️</span>
-                <span>{{ imagePreview ? 'Cambiar Imagen' : 'Seleccionar Imagen' }}</span>
-              </label>
-              <img v-if="imagePreview" :src="imagePreview" alt="Vista previa" class="image-preview">
+              <div v-for="i in 3" :key="i" class="multi-image-upload">
+                <input :id="`productImageInput${i}`" type="file" @change="e => handleFileSelect(e, i)" accept="image/*" class="file-input">
+                <label :for="`productImageInput${i}`" class="file-label">
+                  <span class="icon">🖼️</span>
+                  <span>{{ imagePreviews[i-1] ? 'Cambiar Imagen' : `Seleccionar Imagen ${i}` }}</span>
+                </label>
+                <img v-if="imagePreviews[i-1]" :src="imagePreviews[i-1]" alt="Vista previa" class="image-preview">
+              </div>
             </div>
           </div>
         </div>
@@ -102,10 +104,10 @@
     </div>
 
     <!-- Modal de Recorte -->
-    <div v-if="imageToCrop" class="cropper-modal">
+    <div v-if="imageToCrop.some(img => img) && croppingIndex !== null && imageToCrop[croppingIndex]" class="cropper-modal">
       <div class="cropper-content">
         <h3 class="cropper-title">Recortar Imagen</h3>
-        <Cropper ref="cropper" class="cropper" :src="imageToCrop" :stencil-props="{ aspectRatio: 1 }" image-restriction="stencil" />
+        <Cropper ref="cropper" class="cropper" :src="imageToCrop[croppingIndex]" :stencil-props="{ aspectRatio: 1 }" image-restriction="stencil" />
         <div class="cropper-actions">
           <button @click="cropImage" class="button-primary">Aceptar</button>
           <button @click="closeCropper" class="button-secondary">Cancelar</button>
@@ -143,6 +145,7 @@
 </template>
 
 <script setup>
+
 import { ref, reactive, onMounted, watch, computed } from 'vue';
 // Soporte touch básico para drag and drop en móviles
 let touchStartIdx = null;
@@ -213,9 +216,10 @@ definePageMeta({ layout: 'admin', middleware: 'auth' });
 
 const supabase = useSupabaseClient();
 const cropper = ref(null);
-const imageToCrop = ref(null);
-const croppedImageBlob = ref(null);
-const imagePreview = ref('');
+const imageToCrop = ref([null, null, null]);
+const croppedImageBlob = ref([null, null, null]);
+const imagePreviews = ref(['', '', '']);
+const croppingIndex = ref(null);
 const products = ref([]);
 const categories = ref([]);
 const editingProduct = ref(null);
@@ -255,25 +259,31 @@ watch(() => form.value.name, (newName) => {
   }
 });
 
-const handleFileSelect = (event) => {
+const handleFileSelect = (event, idx) => {
   const file = event.target.files[0];
-  if (file) imageToCrop.value = URL.createObjectURL(file);
+  if (file) {
+    imageToCrop.value[idx-1] = URL.createObjectURL(file);
+    croppingIndex.value = idx-1;
+  }
 };
 
 const cropImage = () => {
-  if (cropper.value) {
+  if (cropper.value && croppingIndex.value !== null) {
     cropper.value.getResult().canvas.toBlob(blob => {
-      croppedImageBlob.value = blob;
-      imagePreview.value = URL.createObjectURL(blob);
+      croppedImageBlob.value[croppingIndex.value] = blob;
+      imagePreviews.value[croppingIndex.value] = URL.createObjectURL(blob);
       closeCropper();
     }, 'image/png');
   }
 };
 
 const closeCropper = () => {
-  imageToCrop.value = null;
-  const fileInput = document.getElementById('productImageInput');
-  if (fileInput) fileInput.value = null;
+  if (croppingIndex.value !== null) {
+    imageToCrop.value[croppingIndex.value] = null;
+    const fileInput = document.getElementById(`productImageInput${croppingIndex.value+1}`);
+    if (fileInput) fileInput.value = null;
+    croppingIndex.value = null;
+  }
 };
 
 const fetchData = async () => {
@@ -285,15 +295,18 @@ const fetchData = async () => {
 
 const saveProduct = async () => {
   isUploading.value = true;
-  if (croppedImageBlob.value) {
-    const fileName = `${Date.now()}-product.png`;
-    const { data, error } = await supabase.storage.from('product-images').upload(fileName, croppedImageBlob.value);
-    if (error) { console.error("Error uploading image:", error); isUploading.value = false; return; }
-    form.value.image_url = supabase.storage.from('product-images').getPublicUrl(data.path).data.publicUrl;
+  // Subir imágenes (máx 3)
+  for (let i = 0; i < 3; i++) {
+    if (croppedImageBlob.value[i]) {
+      const fileName = `${Date.now()}-product-${i+1}.png`;
+      const { data, error } = await supabase.storage.from('product-images').upload(fileName, croppedImageBlob.value[i]);
+      if (error) { console.error("Error uploading image:", error); isUploading.value = false; return; }
+      form.value[`image_url${i === 0 ? '' : '_' + (i+1)}`] = supabase.storage.from('product-images').getPublicUrl(data.path).data.publicUrl;
+    }
   }
 
   if (!form.value.image_url && !editingProduct.value) {
-    alert('Por favor, selecciona una imagen.'); isUploading.value = false; return;
+    alert('Por favor, selecciona al menos una imagen.'); isUploading.value = false; return;
   }
 
   const productData = {
@@ -302,6 +315,8 @@ const saveProduct = async () => {
     description: form.value.description,
     stock: form.value.stock,
     image_url: form.value.image_url,
+    image_url_2: form.value.image_url_2 || null,
+    image_url_3: form.value.image_url_3 || null,
     category_id: form.value.category_id,
     price: form.value.price,
   };
@@ -332,8 +347,8 @@ const saveProduct = async () => {
 const editProduct = async (product) => {
   editingProduct.value = product;
   form.value = { ...product };
-  imagePreview.value = product.image_url;
-  croppedImageBlob.value = null;
+  imagePreviews.value = [product.image_url || '', product.image_url_2 || '', product.image_url_3 || ''];
+  croppedImageBlob.value = [null, null, null];
   newProductVariations.value = [];
 
   if (showVariationsSection.value) {
@@ -347,8 +362,8 @@ const editProduct = async (product) => {
 
 const resetForm = () => {
   editingProduct.value = null;
-  croppedImageBlob.value = null;
-  imagePreview.value = '';
+  croppedImageBlob.value = [null, null, null];
+  imagePreviews.value = ['', '', ''];
   form.value = getInitialFormState();
   productVariatios.value = []; // Corrected typo
   newProductVariations.value = [];

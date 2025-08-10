@@ -11,23 +11,20 @@
             <select v-model="formData.deliveryMethod" required>
               <option disabled value="">Selecciona una opción</option>
               <option>Envío Nacional</option>
-              <option>Delivery</option>
-              <option>Retiro en Tienda</option>
+              <option>Delivery (Valencia)</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Nombre y Apellido</label>
-            <div class="inline-inputs">
-              <input type="text" v-model="formData.firstName" placeholder="Nombre" required />
-              <input type="text" v-model="formData.lastName" placeholder="Apellido" required />
-            </div>
+            <label>Nombre o Empresa</label>
+            <input type="text" v-model="formData.nameOrCompany" placeholder="Nombre o Empresa" required />
           </div>
           <div class="form-group">
-            <label>Cédula y Teléfono</label>
-            <div class="inline-inputs">
-              <input type="text" v-model="formData.cedula" placeholder="Cédula de Identidad" required />
-              <input type="tel" v-model="formData.phone" placeholder="Teléfono" required />
-            </div>
+            <label>RIF</label>
+            <input type="text" v-model="formData.rif" placeholder="RIF" required />
+          </div>
+          <div class="form-group">
+            <label>Número</label>
+            <input type="tel" v-model="formData.phone" placeholder="Número de Teléfono" required />
           </div>
           <div class="form-group">
             <label>Método de Pago</label>
@@ -35,8 +32,8 @@
               <option disabled value="">Selecciona una opción</option>
               <option>Zelle</option>
               <option>Pago Móvil</option>
-              <option>Divisas (Efectivo)</option>
-              <option>Binance</option>
+              <option>Transferencia Bancaria</option>
+              <option>Cuenta Custodia</option>
             </select>
           </div>
           <button type="submit" class="submit-button">Continuar a Confirmación</button>
@@ -61,9 +58,9 @@
         <h4>Tus datos de envío:</h4>
         <div class="confirmation-summary">
           <p><strong>Entrega:</strong> {{ formData.deliveryMethod }}</p>
-          <p><strong>Nombre:</strong> {{ formData.firstName }} {{ formData.lastName }}</p>
-          <p><strong>Cédula:</strong> {{ formData.cedula }}</p>
-          <p><strong>Teléfono:</strong> {{ formData.phone }}</p>
+          <p><strong>Nombre o Empresa:</strong> {{ formData.nameOrCompany }}</p>
+          <p><strong>RIF:</strong> {{ formData.rif }}</p>
+          <p><strong>Número:</strong> {{ formData.phone }}</p>
           <p><strong>Pago:</strong> {{ formData.paymentMethod }}</p>
         </div>
         <div class="confirmation-actions">
@@ -86,9 +83,8 @@ const step = ref(1);
 
 const formData = reactive({
   deliveryMethod: '',
-  firstName: '',
-  lastName: '',
-  cedula: '',
+  nameOrCompany: '',
+  rif: '',
   phone: '',
   paymentMethod: '',
 });

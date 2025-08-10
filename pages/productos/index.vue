@@ -23,6 +23,9 @@
           <div class="product-card">
             <div class="image-container">
               <img :src="product.image_url" :alt="product.name" />
+              <span v-for="badge in getProductBadges(product.name)" :key="badge" :class="['product-badge', 'product-badge-' + badge.toLowerCase().replace(/ /g, '-')]">
+                {{ badge }}
+              </span>
             </div>
             <div class="card-content">
               <h2>{{ product.name }}</h2>
@@ -59,11 +62,15 @@
 <script setup>
 import AnimatedTitle from '~/components/AnimatedTitle.vue';
 import { useCartStore } from '~/stores/cart';
+import { useProductBadges } from '~/composables/useProductBadges';
+
 const cart = useCartStore();
 const supabase = useSupabaseClient();
 const products = ref([]);
 const categories = ref([]);
 const selectedCategory = ref('all');
+
+const { getProductBadges } = useProductBadges();
 
 const formatCurrency = (value) => (typeof value === 'number' ? value.toFixed(2) : '0.00');
 
@@ -103,6 +110,9 @@ const calculateTotalStock = (product) => {
     return product.stock;
   }
 };
+
+
+
 </script>
 
 <style scoped>
@@ -157,10 +167,46 @@ const calculateTotalStock = (product) => {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Sombra más suave */
 }
 .image-container {
+  position: relative;
   width: 100%;
   aspect-ratio: 1 / 1; 
   background-color: var(--color-background); /* Fondo gris claro */
 }
+.product-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: white;
+  padding: 0.6em 1em;
+  border-radius: 12px 0 12px 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  margin-top: 0.5rem; /* Add some spacing if multiple badges */
+  margin-left: 0.5rem;
+}
+
+
+/* Specific badge styles */
+.product-badge-compresión-suave {
+  background-color: #007bff; /* Blue */
+}
+
+.product-badge-compresión-media {
+  background-color: #fd7e14; /* Orange */
+}
+
+.product-badge-compresión-fuerte {
+  background-color: #dc3545; /* Red */
+}
+
+.product-badge-22cm,
+.product-badge-30cm,
+.product-badge-multiusos {
+  background-color: #28a745; /* Green for faja types */
+}
+
 .product-card img {
   width: 100%;
   height: 100%;
