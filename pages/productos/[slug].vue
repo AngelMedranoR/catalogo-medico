@@ -255,7 +255,7 @@ const { getProductBadges } = useProductBadges();
 /* --- ESTILOS MEJORADOS Y RESPONSIVE --- */
 .container {
   max-width: 1200px;
-  margin: 4rem auto;
+  margin: 4rem -2em;
   padding: 0 2rem;
 }
 
@@ -482,9 +482,9 @@ const { getProductBadges } = useProductBadges();
 }
 
 /* --- Media Query para Móviles --- */
-@media (max-width: 820px) {
+@media (max-width: 910px) {
   .container {
-    padding: 0 1rem;
+    padding: 0 2rem; 
   }
   .product-detail-layout {
     grid-template-columns: 1fr;
