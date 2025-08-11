@@ -46,6 +46,7 @@ export default defineNuxtConfig({
             { property: 'og:description', content: 'Explora nuestro catálogo médico en línea.' },
             { property: 'og:image', content: 'https://gaventexve.netlify.app/FotoInicio.png' },
             { property: 'og:url', content: 'https://gaventexve.netlify.app' },
+            { property: 'fb:app_id', content: '1234567890' },
             { property: 'og:type', content: 'website' },
             { name: 'twitter:card', content: 'summary_large_image' },
             { name: 'twitter:image', content: 'https://gaventexve.netlify.app/FotoInicio.png' },
