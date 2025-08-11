@@ -33,7 +33,7 @@ export default defineNuxtConfig({
   },
       app: {
         head: {
-          title: 'Catálogo Gaventex',
+          title: 'Gaventex de Venezuela',
           link: [
             { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
             { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
@@ -42,13 +42,14 @@ export default defineNuxtConfig({
           meta: [
             { name: 'description', content: 'Explora nuestra colección de productos.' },
             { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-            { property: 'og:title', content: 'Catálogo Médico' },
+            { property: 'og:title', content: 'Realiza tu compra!' },
             { property: 'og:description', content: 'Explora nuestro catálogo médico en línea.' },
             { property: 'og:image', content: 'https://gaventexve.netlify.app/FotoInicio.png' },
             { property: 'og:url', content: 'https://gaventexve.netlify.app' },
             { property: 'og:type', content: 'website' },
             { name: 'twitter:card', content: 'summary_large_image' },
             { name: 'twitter:image', content: 'https://gaventexve.netlify.app/FotoInicio.png' },
+            { name: 'image', content: 'https://gaventexve.netlify.app/FotoInicio.png' },
           ],
           htmlAttrs: {
             lang: 'es'
