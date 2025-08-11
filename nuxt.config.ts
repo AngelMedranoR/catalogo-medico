@@ -31,22 +31,28 @@ export default defineNuxtConfig({
       secure: process.env.NODE_ENV === 'production'
     },
   },
-    app: {
-    head: {
-      title: 'Catálogo Gaventex',
-      link: [
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        { href: 'https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Lato:wght@400;700&family=Roboto:wght@400;500;700&display=swap', rel: 'stylesheet' }
-      ],
-      meta: [
-        { name: 'description', content: 'Explora nuestra colección de productos.' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { property: 'og:image', content: 'https://gaventexve.netlify.app/FotoInicio.png'}
-      ],
-      htmlAttrs: {
-        lang: 'es'
+      app: {
+        head: {
+          title: 'Catálogo Gaventex',
+          link: [
+            { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+            { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+            { href: 'https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Lato:wght@400;700&family=Roboto:wght@400;500;700&display=swap', rel: 'stylesheet' }
+          ],
+          meta: [
+            { name: 'description', content: 'Explora nuestra colección de productos.' },
+            { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+            { property: 'og:title', content: 'Catálogo Médico' },
+            { property: 'og:description', content: 'Explora nuestro catálogo médico en línea.' },
+            { property: 'og:image', content: 'https://gaventexve.netlify.app/FotoInicio.png' },
+            { property: 'og:url', content: 'https://gaventexve.netlify.app' },
+            { property: 'og:type', content: 'website' },
+            { name: 'twitter:card', content: 'summary_large_image' },
+            { name: 'twitter:image', content: 'https://gaventexve.netlify.app/FotoInicio.png' },
+          ],
+          htmlAttrs: {
+            lang: 'es'
+          }
+        }
       }
-    }
-  }
 })
