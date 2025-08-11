@@ -41,7 +41,8 @@ export default defineNuxtConfig({
       ],
       meta: [
         { name: 'description', content: 'Explora nuestra colección de productos.' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { property: 'og:image', content: 'blob:https://web.whatsapp.com/75077a2f-697e-4d81-a059-faea5cbee6fc'}
       ],
       htmlAttrs: {
         lang: 'es'
