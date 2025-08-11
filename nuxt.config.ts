@@ -42,7 +42,7 @@ export default defineNuxtConfig({
       meta: [
         { name: 'description', content: 'Explora nuestra colección de productos.' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { property: 'og:image', content: 'https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.istockphoto.com%2Fes%2Ffotos%2Ftodo-imagenes-de-amor&psig=AOvVaw3XcAQ0GPGN8iALDUrpn709&ust=1755026776015000&source=images&cd=vfe&opi=89978449&ved=0CBEQjRxqFwoTCLjMsq--g48DFQAAAAAdAAAAABAE'}
+        { property: 'og:image', content: 'https://gaventexve.netlify.app/FotoInicio.png'}
       ],
       htmlAttrs: {
         lang: 'es'
