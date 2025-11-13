@@ -28,7 +28,9 @@ export const useCartStore = defineStore('cart', {
       // Determine if this product is a 'venda' (bundle of 100 unidades)
       const lowerName = (product && product.name) ? String(product.name).toLowerCase() : '';
       const lowerCategory = (product && product.category && product.category.name) ? String(product.category.name).toLowerCase() : '';
-      const isVenda = lowerName.includes('venda') || lowerCategory.includes('vendas');
+      // Si el producto o la categoría contiene 'varizen', no se trata como bulto (se vende por unidad)
+      const isVarizen = lowerName.includes('varizen') || lowerCategory.includes('varizen');
+      const isVenda = !isVarizen && (lowerName.includes('venda') || lowerCategory.includes('vendas'));
 
       // If it's a "venda", the provided price is assumed to be unitario;
       // store the price per bulto (100 unidades) so totalPrice calculation remains simple.

@@ -110,7 +110,9 @@ const isVenda = computed(() => {
   if (!props.product) return false;
   const lowerName = props.product.name ? String(props.product.name).toLowerCase() : '';
   const lowerCategory = props.product.category && props.product.category.name ? String(props.product.category.name).toLowerCase() : '';
-  return lowerName.includes('venda') || lowerCategory.includes('vendas');
+  // Las 'varizen' se venden por unidad, no por bulto
+  const isVarizen = lowerName.includes('varizen') || lowerCategory.includes('varizen');
+  return !isVarizen && (lowerName.includes('venda') || lowerCategory.includes('vendas'));
 });
 
 // Precio a mostrar en la UI: usa la variación seleccionada si existe,
