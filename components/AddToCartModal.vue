@@ -7,7 +7,10 @@
         <img :src="product.image_url" :alt="product.name" class="modal-product-image" />
         <div class="modal-product-info">
           <h2>{{ product.name }}</h2>
-          <p class="modal-product-price">Bs. {{ formatCurrency(product.price) }}</p>
+          <p class="modal-product-price">
+            Bs. {{ formatCurrency(displayedPrice) }}
+            <small v-if="isVenda"> por bulto (100 unidades)</small>
+          </p>
           
           <!-- Stock General -->
           <p class="modal-stock" v-if="!hasVariations">
@@ -100,6 +103,27 @@ const selectedVariationStock = computed(() => {
   if (!selectedReference.value || !hasVariations.value) return null;
   const variation = props.product.product_variations.find(v => v.id === selectedReference.value);
   return variation ? variation.stock : null;
+});
+
+// Detectar si el producto es una "venda"
+const isVenda = computed(() => {
+  if (!props.product) return false;
+  const lowerName = props.product.name ? String(props.product.name).toLowerCase() : '';
+  const lowerCategory = props.product.category && props.product.category.name ? String(props.product.category.name).toLowerCase() : '';
+  return lowerName.includes('venda') || lowerCategory.includes('vendas');
+});
+
+// Precio a mostrar en la UI: usa la variación seleccionada si existe,
+// y si es "venda" multiplica por 100 para mostrar el precio por bulto.
+const displayedPrice = computed(() => {
+  let basePrice = 0;
+  if (hasVariations.value && selectedReference.value) {
+    const sel = props.product.product_variations.find(v => v.id === selectedReference.value);
+    basePrice = sel ? Number(sel.price) || 0 : 0;
+  } else if (props.product) {
+    basePrice = Number(props.product.price) || 0;
+  }
+  return isVenda.value ? basePrice * 100 : basePrice;
 });
 
 const maxAvailableStock = computed(() => {

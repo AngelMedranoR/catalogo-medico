@@ -25,6 +25,15 @@ export const useCartStore = defineStore('cart', {
   },
   actions: {
     addToCart(product, quantity = 1, reference = null, itemPrice) {
+      // Determine if this product is a 'venda' (bundle of 100 unidades)
+      const lowerName = (product && product.name) ? String(product.name).toLowerCase() : '';
+      const lowerCategory = (product && product.category && product.category.name) ? String(product.category.name).toLowerCase() : '';
+      const isVenda = lowerName.includes('venda') || lowerCategory.includes('vendas');
+
+      // If it's a "venda", the provided price is assumed to be unitario;
+      // store the price per bulto (100 unidades) so totalPrice calculation remains simple.
+      const priceToStore = isVenda ? (Number(itemPrice || 0) * 100) : (Number(itemPrice || 0));
+
       const existingItem = this.items.find(item => 
         item.product.id === product.id && item.reference === reference
       );
@@ -32,7 +41,7 @@ export const useCartStore = defineStore('cart', {
       if (existingItem) {
         existingItem.quantity += quantity;
       } else {
-        this.items.push({ product, quantity, reference, price: itemPrice }); // Store the specific itemPrice
+        this.items.push({ product, quantity, reference, price: priceToStore });
       }
     },
     removeFromCart(productId) {
