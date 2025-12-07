@@ -9,7 +9,7 @@
           <h2>{{ product.name }}</h2>
           <p class="modal-product-price">
             Bs. {{ formatCurrency(displayedPrice) }}
-            <small v-if="isVenda"> por bulto (100 unidades)</small>
+            <small v-if="isVenda"> por la cantidad seleccionada (1er bulto=50u, luego bultos de 100u)</small>
           </p>
           
           <!-- Stock General -->
@@ -45,10 +45,17 @@
 
           <!-- Acciones -->
           <div class="modal-actions">
-            <div class="modal-quantity-selector">
-              <button @click="decreaseQuantity">-</button>
-              <input type="number" v-model.number="quantity" min="1" :max="maxAvailableStock" readonly />
-              <button @click="increaseQuantity">+</button>
+            <div style="display:flex; gap:1rem; align-items:center;">
+              <div class="modal-quantity-selector">
+                <button @click="decreaseQuantity">-</button>
+                <input type="number" v-model.number="quantity" min="1" :max="maxAvailableStock" readonly />
+                <button @click="increaseQuantity">+</button>
+              </div>
+
+              <div class="modal-first-pack-option" style="display:flex; align-items:center; gap:0.5rem;">
+                <input type="checkbox" id="first-pack-100" v-model="firstPackIs100" />
+                <label for="first-pack-100" style="font-size:0.9rem;">Primer bulto de 100 unidades</label>
+              </div>
             </div>
 
             <button 
@@ -81,6 +88,7 @@ const cart = useCartStore();
 const quantity = ref(1);
 const addedMessage = ref('');
 const selectedReference = ref(null); // Para guardar la variante seleccionada
+const firstPackIs100 = ref(false); // Opción: primer bulto de 100 unidades en lugar de 50
 
 // --- Propiedades Computadas para manejar la lógica de UI ---
 const hasVariatedStock = computed(() => {
@@ -115,17 +123,29 @@ const isVenda = computed(() => {
   return !isVarizen && (lowerName.includes('venda') || lowerCategory.includes('vendas'));
 });
 
-// Precio a mostrar en la UI: usa la variación seleccionada si existe,
-// y si es "venda" multiplica por 100 para mostrar el precio por bulto.
+// Precio a mostrar en la UI: usa la variación seleccionada si existe.
+// Para vendas (excepto varizen) el primer bulto tiene 50 unidades y
+// los siguientes 100 unidades. `quantity` representa número de bultos.
 const displayedPrice = computed(() => {
-  let basePrice = 0;
+  let unitPrice = 0;
   if (hasVariations.value && selectedReference.value) {
     const sel = props.product.product_variations.find(v => v.id === selectedReference.value);
-    basePrice = sel ? Number(sel.price) || 0 : 0;
+    unitPrice = sel ? Number(sel.price) || 0 : 0;
   } else if (props.product) {
-    basePrice = Number(props.product.price) || 0;
+    unitPrice = Number(props.product.price) || 0;
   }
-  return isVenda.value ? basePrice * 100 : basePrice;
+
+  if (!isVenda.value) return unitPrice;
+
+  const qty = Number(quantity.value) || 0;
+  if (qty <= 0) return 0;
+  if (firstPackIs100.value) {
+    const totalUnits = qty * 100;
+    return unitPrice * totalUnits;
+  }
+  const totalUnits = 50 + Math.max(0, qty - 1) * 100;
+  // Mostramos el precio total para la cantidad seleccionada
+  return unitPrice * totalUnits;
 });
 
 const maxAvailableStock = computed(() => {
@@ -187,11 +207,12 @@ const handleAddToCart = () => {
     productToAdd.variation_id = null;
   }
 
-  // Pass the correct price to addToCart
-  cart.addToCart(productToAdd, quantity.value, reference, priceToUse);
+  // Pass the correct price and first-pack option to addToCart
+  cart.addToCart(productToAdd, quantity.value, reference, priceToUse, firstPackIs100.value);
   
   const referenceText = reference ? ` (Ref: ${reference})` : '';
-  addedMessage.value = `${quantity.value} bulto(s) de "${props.product.name}"${referenceText} añadido(s) al carrito.`
+  const packLabel = isVenda.value ? (firstPackIs100.value ? ' (1er bulto=100u)' : ' (1er bulto=50u)') : '';
+  addedMessage.value = `${quantity.value} bulto(s) de "${props.product.name}"${referenceText}${packLabel} añadido(s) al carrito.`
   
   // Emit event to parent to indicate product was added and close modal
   emit('product-added');

@@ -23,7 +23,8 @@
       </div>
       <div class="product-info-container">
         <h1>{{ product.name }}</h1>
-        <p class="price">{{ formatCurrency(displayPrice) }}$</p>
+        <p class="price">Bs. {{ formatCurrency(unitPrice) }}$ <span v-if="isVendaProduct">/unidad</span></p>
+        <p class="price" v-if="isVendaProduct">Total selección: Bs. {{ formatCurrency(displayedTotalPrice) }}$</p>
         
         <!-- Stock General -->
         <p class="stock" v-if="!hasVariations">
@@ -59,11 +60,16 @@
         </div>
 
         <!-- Acciones -->
-        <div class="actions">
+        <div class="actions" style="display:flex; align-items:center; gap:1rem;">
           <div class="quantity-selector">
             <button @click="decreaseQuantity">-</button>
             <input type="number" v-model.number="quantity" min="1" :max="maxAvailableStock" readonly />
             <button @click="increaseQuantity">+</button>
+          </div>
+
+          <div v-if="isVendaProduct" style="display:flex; align-items:center; gap:0.5rem;">
+            <input type="checkbox" id="first-pack-100-product" v-model="firstPackIs100" />
+            <label for="first-pack-100-product" style="font-size:0.95rem;">Primer bulto de 100 unidades</label>
           </div>
 
           <button 
@@ -99,6 +105,7 @@ const slug = route.params.slug;
 const quantity = ref(1);
 const addedMessage = ref('');
 const selectedReference = ref(null); // Para guardar la variante seleccionada
+const firstPackIs100 = ref(false); // Opción: elegir primer bulto de 100 unidades en la página de producto
 
 // --- Obtener datos del producto y sus variantes ---
 const supabase = useSupabaseClient();
@@ -148,13 +155,34 @@ const selectedVariationStock = computed(() => {
   return selectedVariation.value ? selectedVariation.value.stock : null;
 });
 
-const displayPrice = computed(() => {
+const unitPrice = computed(() => {
   if (hasVariations.value && selectedVariation.value) {
-    return selectedVariation.value.price; // Muestra el precio de la variante seleccionada
+    return Number(selectedVariation.value.price) || 0; // precio por unidad
   } else if (product.value) {
-    return product.value.price; // Muestra el precio base del producto
+    return Number(product.value.price) || 0; // precio por unidad
   }
-  return 0; // Default
+  return 0;
+});
+
+// Detectar si el producto es una venda (excluyendo varizen)
+const isVendaProduct = computed(() => {
+  if (!product.value) return false;
+  const lowerName = product.value.name ? String(product.value.name).toLowerCase() : '';
+  const lowerCategory = product.value.category && product.value.category.name ? String(product.value.category.name).toLowerCase() : '';
+  const isVarizen = lowerName.includes('varizen') || lowerCategory.includes('varizen');
+  return !isVarizen && (lowerName.includes('venda') || lowerCategory.includes('vendas'));
+});
+
+// Precio total para la selección actual (muestra en la UI)
+const displayedTotalPrice = computed(() => {
+  const up = unitPrice.value || 0;
+  if (!isVendaProduct.value) return up;
+  const qty = Number(quantity.value) || 0;
+  if (qty <= 0) return 0;
+  if (firstPackIs100.value) {
+    return up * (qty * 100);
+  }
+  return up * (50 + Math.max(0, qty - 1) * 100);
 });
 
 const maxAvailableStock = computed(() => {
@@ -215,14 +243,15 @@ const handleAddToCart = () => {
     productToAdd.variation_id = null;
   }
 
-  // Pass the correct price to addToCart
-  cart.addToCart(productToAdd, quantity.value, reference, priceToUse);
-  
+  // Pass the correct price and first-pack option to addToCart
+  cart.addToCart(productToAdd, quantity.value, reference, priceToUse, firstPackIs100.value);
+
   const referenceText = reference ? ` (Ref: ${reference})` : '';
+  const packLabel = isVendaProduct.value ? (firstPackIs100.value ? ' (1er bulto=100u)' : ' (1er bulto=50u)') : '';
   if (isFajasCategory.value) {
     addedMessage.value = `${quantity.value} unidad(es) de "${product.value.name}"${referenceText} añadida(s) al carrito.`
   } else {
-    addedMessage.value = `${quantity.value} bulto(s) de "${product.value.name}"${referenceText} añadido(s) al carrito.`
+    addedMessage.value = `${quantity.value} bulto(s) de "${product.value.name}"${referenceText}${packLabel} añadido(s) al carrito.`
   }
   setTimeout(() => { addedMessage.value = ''; }, 3500);
 };

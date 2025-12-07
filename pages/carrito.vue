@@ -10,14 +10,19 @@
           <img :src="item.product.image_url" :alt="item.product.name" class="item-image" />
           <div class="item-details">
             <p class="item-name">{{ item.product.name }} <span v-if="item.reference" class="item-reference">({{ item.reference }})</span></p>
-            <p class="item-price">${{ formatCurrency(item.price) }}</p>
+              <p class="item-price">
+                ${{ formatCurrency(item.price) }}
+                <small v-if="isVendaItem(item)">
+                  /unidad (1er bulto={{ item.firstPackIs100 ? 100 : 50 }}u{{ item.firstPackIs100 ? '' : ', luego 100u' }})
+                </small>
+              </p>
           </div>
           <div class="quantity-selector">
             <button @click="cart.decreaseQuantity(item.product.id)">-</button>
             <span>{{ item.quantity }}</span>
             <button @click="cart.increaseQuantity(item.product.id)">+</button>
           </div>
-          <p class="item-total">${{ formatCurrency(item.price * item.quantity) }}</p>
+          <p class="item-total">${{ formatCurrency(lineTotal(item)) }}</p>
           <button @click="cart.removeFromCart(item.product.id)">×</button>
         </div>
       </div>
@@ -61,7 +66,29 @@ const cart = useCartStore();
 const ordersStore = useOrdersStore(); // Instancia el store de órdenes
 const showCheckoutModal = ref(false);
 
-const formatCurrency = (value) => (typeof value === 'number' ? `${value.toFixed(2)}` : '$0.00');
+  const formatCurrency = (value) => (typeof value === 'number' ? `${value.toFixed(2)}` : '$0.00');
+
+  const isVendaItem = (item) => {
+    const categoryName = item.product.category ? item.product.category.name.toLowerCase() : '';
+    const lowerName = item.product.name ? item.product.name.toLowerCase() : '';
+    const isVarizen = lowerName.includes('varizen') || categoryName.includes('varizen');
+    return !isVarizen && (lowerName.includes('venda') || categoryName.includes('vendas'));
+  };
+
+  const totalUnitsForItem = (item) => {
+    if (!isVendaItem(item)) return Number(item.quantity) || 0;
+    const qty = Number(item.quantity) || 0;
+    if (qty <= 0) return 0;
+    const firstPack100 = item.firstPackIs100 === true;
+    if (firstPack100) return qty * 100;
+    return 50 + Math.max(0, qty - 1) * 100;
+  };
+
+  const lineTotal = (item) => {
+    const units = totalUnitsForItem(item);
+    const unitPrice = Number(item.price) || 0;
+    return units * unitPrice;
+  };
 
 const sendOrderToWhatsApp = async (customerInfo) => {
   const phoneNumber = '584143879001'; // <-- IMPORTANTE: Reemplaza con tu número
@@ -71,7 +98,7 @@ const sendOrderToWhatsApp = async (customerInfo) => {
   message += `*--- Resumen del Pedido ---*
 `;
 
-  const orderProducts = cart.cartItems.map(item => {
+    const orderProducts = cart.cartItems.map(item => {
     const referenceText = item.reference ? ` (Ref: ${item.reference})` : '';
     const categoryName = item.product.category ? item.product.category.name.toLowerCase() : '';
     const isFaja = categoryName.includes('faja');
@@ -83,13 +110,17 @@ const sendOrderToWhatsApp = async (customerInfo) => {
       quantityText = `x${item.quantity} ${item.quantity === 1 ? 'bulto' : 'bultos'}`;
     }
     
-    message += `• ${item.product.name}${referenceText} (${quantityText}) - ${formatCurrency(item.price * item.quantity)}$.
+`;
+    const packInfo = isVendaItem(item) ? (item.firstPackIs100 ? '1 bulto = 100 unidades' : '1 bulto = 50 unidades (luego 100u)') : null;
+    message += `• ${item.product.name}${referenceText} (${quantityText}) - ${formatCurrency(lineTotal(item))}$` + (packInfo ? ` — ${packInfo}` : '') + `.
 `;
     return {
       id: item.product.id,
       name: item.product.name,
       quantity: item.quantity,
-      price: item.price, // Use item.price
+      price: item.price, // unit price
+      firstPackIs100: item.firstPackIs100 || false,
+      total_units: totalUnitsForItem(item),
       variation_id: item.product.variation_id, // Asegúrate de que esto exista en tu item.product
       reference: item.reference, // Add reference to the order product
     };
