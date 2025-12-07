@@ -13,7 +13,7 @@
               <p class="item-price">
                 ${{ formatCurrency(item.price) }}
                 <small v-if="isVendaItem(item)">
-                  /unidad (1er bulto={{ item.firstPackIs100 ? 100 : 50 }}u{{ item.firstPackIs100 ? '' : ', luego 100u' }})
+                  /unidad (1er bulto={{ item.firstPackIs100 ? 100 : 50 }}u{{ item.firstPackIs100 ? '' : '' }})
                 </small>
               </p>
           </div>
@@ -106,11 +106,18 @@ const sendOrderToWhatsApp = async (customerInfo) => {
     let quantityText;
     if (isFaja) {
       quantityText = `x${item.quantity} ${item.quantity === 1 ? 'unidad' : 'unidades'}`;
+    } else if (isVendaItem(item)) {
+      // Para vendas: si seleccionó 1 bulto y el primer bulto es de 50 unidades,
+      // mostrar el formato compacto solicitado: `x1/2bulto`.
+      if (Number(item.quantity) === 1 && item.firstPackIs100 !== true) {
+        quantityText = `x${item.quantity}/2bulto`;
+      } else {
+        quantityText = `x${item.quantity} ${item.quantity === 1 ? 'bulto' : 'bultos'}`;
+      }
     } else {
       quantityText = `x${item.quantity} ${item.quantity === 1 ? 'bulto' : 'bultos'}`;
     }
     
-`;
     const packInfo = isVendaItem(item) ? (item.firstPackIs100 ? '1 bulto = 100 unidades' : '1 bulto = 50 unidades (luego 100u)') : null;
     message += `• ${item.product.name}${referenceText} (${quantityText}) - ${formatCurrency(lineTotal(item))}$` + (packInfo ? ` — ${packInfo}` : '') + `.
 `;

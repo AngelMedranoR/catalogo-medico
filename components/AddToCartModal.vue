@@ -8,8 +8,11 @@
         <div class="modal-product-info">
           <h2>{{ product.name }}</h2>
           <p class="modal-product-price">
-            Bs. {{ formatCurrency(displayedPrice) }}
-            <small v-if="isVenda"> por la cantidad seleccionada (1er bulto=50u, luego bultos de 100u)</small>
+            <span>{{ formatCurrency(unitPriceModal) }}$ por unidad</span>
+            <br v-if="isVenda" />
+            <strong v-if="isVenda">{{ formatCurrency(displayedPrice) }}$</strong>
+            <small v-if="isVenda"> ({{ totalUnitsModal }} unidades)</small>
+            <small v-else> </small>
           </p>
           
           <!-- Stock General -->
@@ -146,6 +149,25 @@ const displayedPrice = computed(() => {
   const totalUnits = 50 + Math.max(0, qty - 1) * 100;
   // Mostramos el precio total para la cantidad seleccionada
   return unitPrice * totalUnits;
+});
+
+// Precio por unidad en el modal (para mostrar desglose)
+const unitPriceModal = computed(() => {
+  if (hasVariations.value && selectedReference.value) {
+    const sel = props.product.product_variations.find(v => v.id === selectedReference.value);
+    return sel ? Number(sel.price) || 0 : 0;
+  } else if (props.product) {
+    return Number(props.product.price) || 0;
+  }
+  return 0;
+});
+
+const totalUnitsModal = computed(() => {
+  if (!isVenda.value) return Number(quantity.value) || 0;
+  const qty = Number(quantity.value) || 0;
+  if (qty <= 0) return 0;
+  if (firstPackIs100.value) return qty * 100;
+  return 50 + Math.max(0, qty - 1) * 100;
 });
 
 const maxAvailableStock = computed(() => {

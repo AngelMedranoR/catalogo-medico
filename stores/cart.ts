@@ -70,6 +70,51 @@ export const useCartStore = defineStore('cart', {
         this.items.push({ product, quantity, reference, price: priceToStore, firstPackIs100 });
       }
     },
+    // Normaliza items antiguos en el carrito.
+    // - Asegura que `firstPackIs100` existe (false por defecto)
+    // - Si el producto es una venda y el precio almacenado parece corresponder
+    //   a un precio por bulto (precio_unitario * 100), lo convertimos a precio por unidad.
+    initCart() {
+      this.items = this.items.map(item => {
+        if (!item || !item.product) return item;
+        // Ensure the flag exists
+        if (typeof item.firstPackIs100 !== 'boolean') item.firstPackIs100 = false;
+
+        const lowerName = (item.product && item.product.name) ? String(item.product.name).toLowerCase() : '';
+        const lowerCategory = (item.product && item.product.category && item.product.category.name) ? String(item.product.category.name).toLowerCase() : '';
+        const isVarizen = lowerName.includes('varizen') || lowerCategory.includes('varizen');
+        const isVenda = !isVarizen && (lowerName.includes('venda') || lowerCategory.includes('vendas'));
+
+        if (!isVenda) return item;
+
+        // Try to determine unit price from product data (variation or product price)
+        let prodUnitPrice = null;
+        try {
+          if (item.product.product_variations && item.reference) {
+            const v = item.product.product_variations.find(vv => vv.reference === item.reference || vv.id === item.product.variation_id || vv.id === item.variation_id);
+            if (v && v.price) prodUnitPrice = Number(v.price);
+          }
+          if (prodUnitPrice === null && item.product.price) prodUnitPrice = Number(item.product.price);
+        } catch (e) {
+          prodUnitPrice = null;
+        }
+
+        // If we know the product unit price and the stored item.price is approx unitPrice*100,
+        // then convert it to unit price by dividing by 100.
+        if (prodUnitPrice && item.price) {
+          const stored = Number(item.price);
+          const expected = prodUnitPrice * 100;
+          // Allow small rounding tolerance
+          if (Math.abs(stored - expected) <= Math.max(1, expected * 0.01)) {
+            item.price = stored / 100;
+          }
+        }
+
+        return item;
+      });
+      // Provide lightweight debug info
+      if (typeof console !== 'undefined') console.info('[cart] initCart normalization complete', this.items);
+    },
     removeFromCart(productId) {
       this.items = this.items.filter(item => item.product.id !== productId)
     },
