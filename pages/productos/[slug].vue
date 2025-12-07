@@ -23,7 +23,7 @@
       </div>
       <div class="product-info-container">
         <h1>{{ product.name }}</h1>
-        <p class="price">Bs. {{ formatCurrency(unitPrice) }}$ <span v-if="isVendaProduct">/unidad</span></p>
+        <p class="price">{{ formatCurrency(unitPrice) }}$ <span v-if="isVendaProduct">/unidad</span></p>
         <p class="price" v-if="isVendaProduct">Total selección: {{ formatCurrency(displayedTotalPrice) }}$</p>
         
         <!-- Stock General -->
