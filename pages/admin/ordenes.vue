@@ -7,20 +7,33 @@
       <p>Cargando órdenes...</p>
     </div>
 
-    <div v-else-if="orders.length === 0" class="empty-state">
-      <p>🎉</p>
-      <h2>No hay órdenes pendientes.</h2>
-      <p>Cuando un cliente realice un nuevo pedido, aparecerá aquí.</p>
-    </div>
+    <div v-else>
+      <!-- Filtros por Tabs -->
+      <div class="tabs-container">
+        <button 
+          v-for="tab in ['pending', 'confirmed', 'shipped', 'cancelled', 'all']" 
+          :key="tab"
+          @click="currentFilter = tab"
+          :class="['tab-button', { active: currentFilter === tab }]"
+        >
+          {{ tabLabels[tab] }}
+        </button>
+      </div>
 
-    <div v-else class="orders-list">
-      <div v-for="order in orders" :key="order.id" class="order-card">
+      <div v-if="filteredOrders.length === 0" class="empty-state">
+        <p>🎉</p>
+        <h2>No hay órdenes en esta categoría.</h2>
+        <p>Cuando un cliente realice un nuevo pedido o cambie de estado, aparecerá aquí.</p>
+      </div>
+
+      <div v-else class="orders-list">
+        <div v-for="order in filteredOrders" :key="order.id" class="order-card">
         <div class="card-header">
           <div>
             <h3 class="customer-name">{{ order.customer_name }}</h3>
             <p class="order-date">{{ formatDate(order.created_at) }}</p>
           </div>
-          <div :class="['status-badge', `status-${order.status}`]">{{ order.status }}</div>
+          <div :class="['status-badge', `status-${order.status}`]">{{ tabLabels[order.status] || order.status }}</div>
         </div>
 
         <div class="card-body">
@@ -58,15 +71,33 @@
 
         <div class="card-actions">
           <button 
-            @click="confirmOrder(order)" 
+            v-if="order.status === 'pending'"
+            @click="changeOrderStatus(order, 'confirmed')" 
             class="action-button confirm"
-            :disabled="order.status === 'confirmed'"
           >
-            <span class="icon">✓</span> Confirmar
+            <span class="icon">✓</span> Confirmar Recepción
           </button>
+          
+          <button 
+            v-if="order.status === 'confirmed'"
+            @click="changeOrderStatus(order, 'shipped')" 
+            class="action-button ship"
+          >
+            <span class="icon">🚚</span> Marcar Enviada
+          </button>
+
+          <button 
+            v-if="order.status === 'pending' || order.status === 'confirmed'"
+            @click="cancelOrder(order)" 
+            class="action-button cancel"
+          >
+            <span class="icon">×</span> Cancelar Orden
+          </button>
+
           <button @click="deleteOrder(order.id)" class="action-button delete">
-            <span class="icon">×</span> Eliminar
+            <span class="icon">🗑️</span> Eliminar
           </button>
+        </div>
         </div>
       </div>
     </div>
@@ -78,11 +109,27 @@ definePageMeta({
   layout: 'admin',
   middleware: 'auth'
 });
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useToast } from 'vue-toastification';
 
+const toast = useToast();
 const supabase = useSupabaseClient();
 const orders = ref([]);
 const loading = ref(true);
+const currentFilter = ref('pending');
+
+const tabLabels = {
+  'pending': 'Pendiente',
+  'confirmed': 'Confirmada',
+  'shipped': 'Enviada',
+  'cancelled': 'Cancelada',
+  'all': 'Todas las Órdenes'
+};
+
+const filteredOrders = computed(() => {
+  if (currentFilter.value === 'all') return orders.value;
+  return orders.value.filter(o => o.status === currentFilter.value);
+});
 
 const fetchOrders = async () => {
   loading.value = true;
@@ -102,80 +149,72 @@ const fetchOrders = async () => {
 
 onMounted(fetchOrders);
 
-const confirmOrder = async (order) => {
-  if (order.status === 'confirmed') return;
-
+const changeOrderStatus = async (order, newStatus) => {
   try {
-    for (const item of order.products) {
-      // Determinar si es un producto con variación o un producto simple
-      if (item.variation_id) {
-        // Es una variación, actualizar el stock en product_variations
-        const { data: variation, error: fetchVariationError } = await supabase
-          .from('product_variations')
-          .select('stock')
-          .eq('id', item.variation_id)
-          .single();
-
-        if (fetchVariationError) {
-          console.error(`Variación de producto no encontrada: ${item.name} (ID de Variación: ${item.variation_id})`);
-          throw fetchVariationError;
+    // Si la orden pasa de pendiente a confirmada, descontar inventario.
+    if (order.status === 'pending' && newStatus === 'confirmed') {
+      for (const item of order.products) {
+        if (item.variation_id) {
+          const { data: variation, error: fetchVariationError } = await supabase.from('product_variations').select('stock').eq('id', item.variation_id).single();
+          if (fetchVariationError) throw fetchVariationError;
+          await supabase.from('product_variations').update({ stock: variation.stock - item.quantity }).eq('id', item.variation_id);
+        } else {
+          const { data: product, error: fetchProductError } = await supabase.from('products').select('stock').eq('id', item.id).single();
+          if (fetchProductError) throw fetchProductError;
+          await supabase.from('products').update({ stock: product.stock - item.quantity }).eq('id', item.id);
         }
-
-        const newVariationStock = variation.stock - item.quantity;
-
-        const { error: updateVariationError } = await supabase
-          .from('product_variations')
-          .update({ stock: newVariationStock })
-          .eq('id', item.variation_id);
-
-        if (updateVariationError) throw updateVariationError;
-
-      } else {
-        // Es un producto simple, actualizar el stock en products
-        const { data: product, error: fetchProductError } = await supabase
-          .from('products')
-          .select('stock')
-          .eq('id', item.id)
-          .single();
-
-        if (fetchProductError) {
-          console.error(`Producto no encontrado: ${item.name} (ID: ${item.id})`);
-          throw fetchProductError;
-        }
-
-        const newProductStock = product.stock - item.quantity;
-
-        const { error: updateProductError } = await supabase
-          .from('products')
-          .update({ stock: newProductStock })
-          .eq('id', item.id);
-
-        if (updateProductError) throw updateProductError;
       }
     }
 
-    const { error: orderError } = await supabase
-      .from('orders')
-      .update({ status: 'confirmed' })
-      .eq('id', order.id);
-
+    const { error: orderError } = await supabase.from('orders').update({ status: newStatus }).eq('id', order.id);
     if (orderError) throw orderError;
 
+    toast.success(`Orden #${order.id.split('-')[0]} marcada como ${tabLabels[newStatus]}`);
     fetchOrders();
   } catch (error) {
-    console.error('Error confirming order:', error.message);
-    alert('Hubo un error al confirmar la orden. Revisa la consola.');
+    console.error(`Error cambiando orden a ${newStatus}:`, error.message);
+    toast.error('Hubo un error al actualizar el estado de la orden');
+  }
+};
+
+const cancelOrder = async (order) => {
+  if (!confirm('¿Seguro quieres cancelar esta orden? (Si ya estaba confirmada, el stock se devolverá)')) return;
+  
+  try {
+    // Si la orden ya estaba confirmada, debemos regresar su stock para no perderlo.
+    if (order.status === 'confirmed') {
+      for (const item of order.products) {
+        if (item.variation_id) {
+          const { data: variation } = await supabase.from('product_variations').select('stock').eq('id', item.variation_id).single();
+          await supabase.from('product_variations').update({ stock: variation.stock + item.quantity }).eq('id', item.variation_id);
+        } else {
+          const { data: product } = await supabase.from('products').select('stock').eq('id', item.id).single();
+          await supabase.from('products').update({ stock: product.stock + item.quantity }).eq('id', item.id);
+        }
+      }
+    }
+
+    const { error } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', order.id);
+    if (error) throw error;
+    
+    toast.info(`Orden #${order.id.split('-')[0]} ha sido Cancelada.`);
+    fetchOrders();
+  } catch(error) {
+    console.error('Error canceling order:', error.message);
+    toast.error('Ocurrió un error cancelando la orden');
   }
 };
 
 const deleteOrder = async (orderId) => {
-  if (!confirm('¿Estás seguro de que quieres eliminar esta orden? Esta acción no se puede deshacer.')) return;
+  if (!confirm('¿Estás seguro de que quieres eliminar esta orden PERMANENTEMENTE?')) return;
   try {
     const { error } = await supabase.from('orders').delete().eq('id', orderId);
     if (error) throw error;
+    toast.success('Orden eliminada exitosamente');
     fetchOrders();
   } catch (error) {
     console.error('Error deleting order:', error.message);
+    toast.error('Ocurrió un error al eliminar');
   }
 };
 
@@ -252,8 +291,8 @@ const formatDate = (date) => new Date(date).toLocaleDateString('es-VE', { day: '
 }
 .orders-container {
   padding: 1.5rem;
-  background-color: #f8f9fa; /* Lighter background for a cleaner look */
-  color: #333;             /* Darker text for contrast */
+  background-color: var(--bg-main); 
+  color: var(--text-body);             
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -263,25 +302,25 @@ const formatDate = (date) => new Date(date).toLocaleDateString('es-VE', { day: '
   margin-bottom: 2.5rem;
   font-size: 2rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--text-primary);
 }
 
 /* --- Estados de Carga y Vacío --- */
 .loading-state, .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   border-radius: 16px;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px var(--shadow-color);
 }
 .empty-state h2 {
   margin: 1rem 0 0.5rem;
-  color: #2c3e50;
+  color: var(--text-primary);
   font-weight: 600;
 }
 .empty-state p {
-  color: #6c757d;
+  color: var(--text-secondary);
 }
 .empty-state p:first-child { font-size: 3rem; margin: 0; }
 
@@ -306,16 +345,16 @@ const formatDate = (date) => new Date(date).toLocaleDateString('es-VE', { day: '
 }
 
 .order-card {
-  background-color: #ffffff;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 6px var(--shadow-color);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s, border-color 0.3s;
 }
 .order-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 15px var(--shadow-color);
 }
 
 .card-header {
@@ -323,12 +362,12 @@ const formatDate = (date) => new Date(date).toLocaleDateString('es-VE', { day: '
   justify-content: space-between;
   align-items: flex-start;
   padding: 1.2rem 1.5rem;
-  background-color: #f1f3f5;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--bg-hover);
+  border-bottom: 1px solid var(--border-color);
 }
 
-.customer-name { margin: 0; font-size: 1.25rem; font-weight: 600; color: #2c3e50; }
-.order-date { margin: 0.25rem 0 0; font-size: 0.85rem; color: #6c757d; font-weight: 500; }
+.customer-name { margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+.order-date { margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
 
 .status-badge {
   padding: 0.3rem 0.8rem;
@@ -349,57 +388,98 @@ const formatDate = (date) => new Date(date).toLocaleDateString('es-VE', { day: '
   display: flex;
   justify-content: space-between;
   margin-bottom: 0.8rem;
-  border-bottom: 1px dashed #f1f3f5;
+  border-bottom: 1px dashed var(--border-color);
   padding-bottom: 0.4rem;
 }
-.detail-label { color: #6c757d; font-weight: 500; }
-.detail-value { color: #2c3e50; font-weight: 600; }
+.detail-label { color: var(--text-secondary); font-weight: 500; }
+.detail-value { color: var(--text-primary); font-weight: 600; }
 .total-price { font-size: 1.2rem; color: #27ae60; font-weight: 800; }
 
 .products-section {
   margin-top: 1.5rem;
   padding-top: 1.2rem;
-  border-top: 1.5px solid #e9ecef;
+  border-top: 1.5px solid var(--border-color);
 }
-.products-title { margin: 0 0 1rem; font-size: 1.1rem; color: #2c3e50; font-weight: 600; }
+.products-title { margin: 0 0 1rem; font-size: 1.1rem; color: var(--text-primary); font-weight: 600; }
 .products-list-items { list-style: none; padding: 0; margin: 0; }
 .products-list-items li {
   display: flex;
   justify-content: space-between;
   padding: 0.5rem 0;
-  color: #495057;
+  color: var(--text-body);
   font-weight: 500;
 }
-.product-quantity { font-weight: bold; color: #2c3e50; }
+.product-quantity { font-weight: bold; color: var(--text-primary); }
 
 .card-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1px;
-  background-color: #e9ecef;
-  border-top: 1px solid #e9ecef;
+  background-color: var(--border-color);
+  border-top: 1px solid var(--border-color);
 }
 
 .action-button {
   padding: 1.2rem;
   border: none;
   cursor: pointer;
-  color: #495057;
+  color: var(--text-body);
   font-size: 1rem;
   font-weight: 600;
-  background-color: #f8f9fa;
-  transition: all 0.2s ease;
+  background-color: var(--bg-hover);
+  transition: all 0.2s ease, background-color 0.3s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
 }
-.action-button:hover { background-color: #ffffff; z-index: 1; position: relative; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+.action-button:hover { background-color: var(--bg-card); z-index: 1; position: relative; box-shadow: 0 0 10px var(--shadow-color); }
 .action-button.confirm { color: #27ae60; }
 .action-button.confirm:hover { color: #1e8449; }
-.action-button.confirm:disabled { color: #adb5bd; background-color: #e9ecef; cursor: not-allowed; box-shadow: none; }
+.action-button.confirm:disabled { color: var(--text-secondary); background-color: var(--border-color); cursor: not-allowed; box-shadow: none; }
 .action-button.delete { color: #ef4444; }
 .action-button.delete:hover { color: #b91c1c; }
+
+/* --- Tabs Filter --- */
+.tabs-container {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.tab-button {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.6rem 1.2rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease, background-color 0.3s;
+  white-space: nowrap;
+}
+
+.tab-button:hover {
+  background-color: var(--bg-hover);
+  color: #3b82f6;
+}
+
+.tab-button.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.status-shipped { background-color: #cff4fc; color: #055160; }
+.status-cancelled { background-color: #f8d7da; color: #842029; }
+
+.action-button.ship { color: #055160; }
+.action-button.ship:hover { color: #022b33; }
+.action-button.cancel { color: #842029; }
+.action-button.cancel:hover { color: #400a10; }
 
 /* --- Media Query para Tablets y Escritorios Pequeños --- */
 @media (min-width: 768px) {

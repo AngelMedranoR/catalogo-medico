@@ -20,11 +20,23 @@
 
       <!-- Lista de Categorías -->
       <div class="widget-card list-card">
-        <h2 class="widget-title">Categorías Existentes</h2>
+        <h2 class="widget-title">Categorías Existentes <small class="drag-hint">(Arrastra para re-ordenar)</small></h2>
         <div v-if="categories.length > 0" class="categories-list">
           <ul>
-            <li v-for="category in categories" :key="category.id">
-              <span>{{ category.name }}</span>
+            <li 
+              v-for="(category, index) in categories" 
+              :key="category.id"
+              draggable="true"
+              @dragstart="onDragStartCat(index)"
+              @dragover.prevent
+              @drop="onDropCat($event, index)"
+              @touchstart="onTouchStartCat(index)"
+              @touchmove.prevent="onTouchMoveCat($event)"
+              @touchend="onTouchEndCat"
+              :class="{ 'is-dragging': draggingCatIdx === index }"
+            >
+              <span class="drag-handle"><GripVerticalIcon class="icon-small" /></span>
+              <span class="cat-name">{{ category.name }}</span>
               <div class="item-actions">
                 <button @click="editCategory(category)" class="action-btn edit-btn">✏️</button>
                 <button @click="deleteCategory(category.id)" class="action-btn delete-btn">🗑️</button>
@@ -40,20 +52,70 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useToast } from 'vue-toastification';
+import { GripVerticalIcon } from 'lucide-vue-next';
 
-definePageMeta({
-  layout: 'admin',
-  middleware: 'auth'
-});
+definePageMeta({ layout: 'admin', middleware: 'auth' });
 
+const toast = useToast();
 const supabase = useSupabaseClient();
 const categories = ref([]);
 const editingCategory = ref(null);
 const form = ref({ name: '' });
 
+// --- DRAG & DROP LOGIC ---
+const draggingCatIdx = ref(null);
+let touchOverIdx = null;
+
+const reorderDataInDb = async (arr) => {
+  // Update order fields iteratively
+  try {
+    const promises = arr.map((cat, i) => {
+      cat.order_index = i;
+      return supabase.from('categories').update({ order_index: i }).eq('id', cat.id);
+    });
+    await Promise.all(promises);
+    toast.success('Orden guardado correctamente', { timeout: 1500 });
+  } catch(e) { toast.error('Error re-ordenando base de datos'); }
+};
+
+const onDragStartCat = (idx) => { draggingCatIdx.value = idx; };
+const onDropCat = async (e, targetIdx) => {
+  if (draggingCatIdx.value === null || draggingCatIdx.value === targetIdx) return;
+  const moved = categories.value.splice(draggingCatIdx.value, 1)[0];
+  categories.value.splice(targetIdx, 0, moved);
+  await reorderDataInDb(categories.value);
+  draggingCatIdx.value = null;
+};
+
+// Touch events mapping
+const onTouchStartCat = (idx) => { draggingCatIdx.value = idx; };
+const onTouchMoveCat = (e) => {
+  const touch = e.touches[0];
+  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (!target) return;
+  const li = target.closest('li');
+  if (li) touchOverIdx = Array.from(li.parentNode.children).indexOf(li);
+};
+const onTouchEndCat = async () => {
+  if (draggingCatIdx.value !== null && touchOverIdx !== null && draggingCatIdx.value !== touchOverIdx) {
+    const moved = categories.value.splice(draggingCatIdx.value, 1)[0];
+    categories.value.splice(touchOverIdx, 0, moved);
+    await reorderDataInDb(categories.value);
+  }
+  draggingCatIdx.value = null;
+  touchOverIdx = null;
+};
+
 async function fetchData() {
-  const { data } = await supabase.from('categories').select('*').order('name');
-  categories.value = data || [];
+  const { data, error } = await supabase.from('categories').select('*').order('order_index', { ascending: true , nullsFirst: false}).order('name');
+  if (error && error.message.includes('order_index')) {
+    // Fallback if the user hasn't added order_index column yet
+    const fallback = await supabase.from('categories').select('*').order('name');
+    categories.value = fallback.data || [];
+  } else {
+    categories.value = data || [];
+  }
 }
 
 function resetForm() {
@@ -67,25 +129,35 @@ async function saveCategory() {
     if (editingCategory.value) {
       const { error } = await supabase.from('categories').update({ name: form.value.name }).eq('id', editingCategory.value.id);
       if (error) throw error;
+      toast.success('Categoría actualizada');
     } else {
-      const { error } = await supabase.from('categories').insert([{ name: form.value.name }]);
-      if (error) throw error;
+      // automatically assign order index at the bottom
+      const nextIdx = categories.value.length;
+      const { error } = await supabase.from('categories').insert([{ name: form.value.name, order_index: nextIdx }]);
+      if (error && error.message.includes('order_index')) {
+        const fallbackErr = await supabase.from('categories').insert([{ name: form.value.name }]);
+        if (fallbackErr.error) throw fallbackErr.error;
+      } else if (error) throw error;
+      toast.success('Nueva categoría agregada');
     }
     await fetchData();
     resetForm();
   } catch (error) {
     console.error('Error saving category:', error.message);
+    toast.error('Ocurrió un error guardando la categoría');
   }
 }
 
 async function deleteCategory(id) {
-  if (confirm('¿Estás seguro? Borrar una categoría puede afectar a los productos asociados.')) {
+  if (confirm('¿Estás seguro? Borrar una categoría afectará a todos sus productos.')) {
     try {
       const { error } = await supabase.from('categories').delete().eq('id', id);
       if (error) throw error;
+      toast.info('Categoría eliminada del panel');
       await fetchData();
     } catch (error) {
       console.error('Error deleting category:', error.message);
+      toast.error('Fallo al eliminar la categoría');
     }
   }
 }
@@ -155,8 +227,8 @@ onMounted(fetchData);
 }
 .categories-container {
   padding: 1.5rem;
-  background-color: #f8f9fa; /* Lighter background for a cleaner look */
-  color: #333;             /* Darker text for contrast */
+  background-color: var(--bg-main); 
+  color: var(--text-body);             
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -164,7 +236,7 @@ onMounted(fetchData);
 .title {
   font-size: 2rem;
   font-weight: 700;
-  color: #2c3e50;         /* Deep blue-gray for titles */
+  color: var(--text-primary);         
   margin-bottom: 2rem;
 }
 
@@ -175,19 +247,20 @@ onMounted(fetchData);
 }
 
 .widget-card {
-  background-color: #ffffff;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 6px var(--shadow-color);
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .widget-title {
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0 0 1.5rem 0;
-  color: #2c3e50;
-  border-bottom: 1px solid #e9ecef;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 1rem;
 }
 
@@ -199,19 +272,19 @@ onMounted(fetchData);
 .category-form label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #6c757d;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .category-form input {
   width: 100%;
   padding: 0.9rem 1rem;
-  background-color: #f8f9fa;
-  border: 1.5px solid #dee2e6;
+  background-color: var(--bg-hover);
+  border: 1.5px solid var(--border-color);
   border-radius: 10px;
-  color: #333;
+  color: var(--text-body);
   font-size: 1rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s, color 0.3s;
   box-sizing: border-box;
 }
 
@@ -256,15 +329,22 @@ onMounted(fetchData);
   align-items: center;
   padding: 1rem 1.2rem;
   border-radius: 10px;
-  border: 1px solid #f1f3f5;
+  border: 1px solid var(--border-color);
   margin-bottom: 0.5rem;
-  background-color: #fcfcfc;
-  color: #495057;
+  background-color: var(--bg-card);
+  color: var(--text-body);
   font-weight: 500;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.categories-list li:hover { background-color: #f1f3f5; border-color: #e9ecef; }
+.categories-list li.is-dragging {
+  opacity: 0.5;
+  background-color: var(--bg-hover);
+  border: 1.5px dashed #3b82f6;
+  transform: scale(0.98);
+}
+
+.categories-list li:hover { background-color: var(--bg-hover); border-color: var(--border-color); }
 
 .item-actions {
   display: flex;
@@ -283,7 +363,7 @@ onMounted(fetchData);
   align-items: center;
   justify-content: center;
 }
-.action-btn:hover { background-color: #e9ecef; }
+.action-btn:hover { background-color: var(--bg-hover); }
 .edit-btn { color: #f59e0b; }
 .delete-btn { color: #ef4444; }
 

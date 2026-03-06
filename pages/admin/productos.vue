@@ -123,9 +123,14 @@
 
     <!-- Lista de Productos -->
     <div class="widget-card list-card">
-        <h2 class="widget-title">Productos Existentes</h2>
-        <div v-if="products.length > 0" class="products-list">
-          <div v-for="product in products" :key="product.id" class="product-item-card">
+        <div class="list-header">
+          <h2 class="widget-title">Productos Existentes</h2>
+          <div class="search-box">
+            <input type="search" v-model="searchQuery" placeholder="Buscar producto por nombre o categoría...">
+          </div>
+        </div>
+        <div v-if="filteredProducts.length > 0" class="products-list">
+          <div v-for="product in filteredProducts" :key="product.id" class="product-item-card">
             <img :src="product.image_url || '/placeholder.png'" :alt="product.name" class="product-image">
             <div class="product-info">
               <h4 class="product-name">{{ product.name }}</h4>
@@ -151,8 +156,11 @@
 </template>
 
 <script setup>
-
 import { ref, reactive, onMounted, watch, computed } from 'vue';
+import { useToast } from 'vue-toastification';
+
+const toast = useToast();
+
 // Soporte touch básico para drag and drop en móviles
 let touchStartIdx = null;
 let touchOverIdx = null;
@@ -227,6 +235,7 @@ const croppedImageBlob = ref([null, null, null]);
 const imagePreviews = ref(['', '', '']);
 const croppingIndex = ref(null);
 const products = ref([]);
+const searchQuery = ref('');
 const categories = ref([]);
 const editingProduct = ref(null);
 const isUploading = ref(false);
@@ -252,6 +261,13 @@ const variationTitle = computed(() => {
   if (categoryName.includes('vendas') || categoryName.includes('varizen')) return 'Gestionar Medidas';
   return 'Gestionar Variantes';
 });
+
+const filteredProducts = computed(() => {
+  if (!searchQuery.value) return products.value;
+  const lowerQuery = searchQuery.value.toLowerCase();
+  return products.value.filter(p => p.name.toLowerCase().includes(lowerQuery) || p.categories?.name?.toLowerCase().includes(lowerQuery));
+});
+
 const isFajasMultiusosCategory = computed(() => selectedCategory.value?.name.toLowerCase().includes('fajas multiusos'));
 const isFajasCategory = computed(() => {
     const name = selectedCategory.value?.name.toLowerCase();
@@ -314,7 +330,9 @@ const saveProduct = async () => {
   }
 
   if (!form.value.image_url && !editingProduct.value) {
-    alert('Por favor, selecciona al menos una imagen.'); isUploading.value = false; return;
+    toast.error('Por favor, selecciona al menos una imagen.'); 
+    isUploading.value = false; 
+    return;
   }
 
   const productData = {
@@ -353,8 +371,10 @@ const saveProduct = async () => {
     }
     await fetchData();
     resetForm();
+    toast.success(editingProduct.value ? 'Producto actualizado correctamente' : 'Producto creado exitosamente');
   } catch (error) {
     console.error('Error saving product:', error.message);
+    toast.error('Ocurrió un error al guardar el producto');
   } finally {
     isUploading.value = false;
   }
@@ -391,6 +411,7 @@ const cancelEdit = () => resetForm();
 const deleteProduct = async (id) => {
   if (confirm('¿Seguro que quieres borrar este producto?')) {
     await supabase.from('products').delete().eq('id', id);
+    toast.success('Producto eliminado del sistema');
     fetchData();
   }
 };
@@ -412,7 +433,10 @@ const syncBasePrice = async () => {
 };
 
 const addVariation = async (variation) => {
-  if (!variation.reference?.trim() || variation.stock === null || variation.price === null) return alert('Referencia, stock y precio son obligatorios.');
+  if (!variation.reference?.trim() || variation.stock === null || variation.price === null) {
+    toast.warning('Referencia, stock y precio son obligatorios.');
+    return;
+  }
   if (editingProduct.value) {
     const { data, error } = await supabase.from('product_variations').insert([{ product_id: editingProduct.value.id, ...variation }]).select().single();
     if (!error) {
@@ -458,40 +482,48 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
-/* --- Fondo general y contenedor --- */
+/* --- Layout General --- */
 .products-container {
-    background: linear-gradient(135deg, #23272f 0%, #181c22 100%);
-  padding: 1.2rem;
-  max-width: 1500px;
+  padding: 1.5rem;
+  background-color: var(--bg-main);
+  color: var(--text-body);
+  max-width: 1400px;
   margin: 0 auto;
 }
-
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
 .title {
   font-size: 2rem;
-  color: #e6eaf3;
-  margin-bottom: 2.2rem;
+  color: var(--text-primary);
+  margin: 0;
   font-weight: 700;
   letter-spacing: 0.5px;
 }
 
 /* --- Tarjetas y widgets --- */
 .widget-card {
-  background: rgba(34, 38, 46, 0.98);
-  border: 1px solid #23272f;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 18px;
   padding: 2rem 1.5rem;
   margin-bottom: 2.5rem;
-  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.10);
-  transition: box-shadow 0.2s;
+  box-shadow: 0 4px 6px var(--shadow-color);
+  transition: box-shadow 0.2s, background-color 0.3s, border-color 0.3s;
 }
 .widget-card:hover {
-  box-shadow: 0 4px 32px 0 rgba(0,0,0,0.18);
+  box-shadow: 0 8px 15px var(--shadow-color);
 }
 .widget-title {
   font-size: 1.3rem;
   margin: 0 0 1.5rem 0;
-  color: #e6eaf3;
-  border-bottom: 1px solid #23272f;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 1rem;
   font-weight: 600;
 }
@@ -512,23 +544,23 @@ onMounted(fetchData);
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #b6bedc;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 input, select, textarea {
   width: 100%;
   min-width: 0;
   padding: 0.9rem 1rem;
-  background: #23272f;
-  border: 1.5px solid #353b48;
+  background: var(--bg-hover);
+  border: 1.5px solid var(--border-color);
   border-radius: 10px;
-  color: #e6eaf3;
+  color: var(--text-body);
   font-size: 1rem;
-  transition: border 0.2s;
+  transition: border 0.2s, background-color 0.3s, color 0.3s;
   box-sizing: border-box;
 }
 input:focus, select:focus, textarea:focus {
-  border-color: #4f8cff;
+  border-color: #3b82f6;
   outline: none;
 }
 textarea {
@@ -551,8 +583,8 @@ textarea {
   align-items: center;
   gap: 0.7rem;
   padding: 0.9rem 1.3rem;
-  background: #353b48;
-  color: #e6eaf3;
+  background: var(--border-color);
+  color: var(--text-body);
   border-radius: 10px;
   cursor: pointer;
   font-weight: 500;
@@ -560,7 +592,7 @@ textarea {
   transition: background 0.2s;
 }
 .file-label:hover {
-  background: #4f8cff;
+  background: #3b82f6;
   color: #fff;
 }
 .image-preview {
@@ -568,20 +600,20 @@ textarea {
   height: 90px;
   border-radius: 10px;
   object-fit: cover;
-  border: 2px solid #353b48;
+  border: 2px solid var(--border-color);
 }
 
 /* --- Sección de Stock/Variantes --- */
 .stock-section {
-  background: #23272f;
+  background: var(--bg-hover);
   padding: 1.5rem 1rem;
   border-radius: 10px;
   margin-top: 1.5rem;
-  box-shadow: 0 1px 8px 0 rgba(0,0,0,0.08);
+  border: 1px solid var(--border-color);
 }
 .section-subtitle {
   font-size: 1.08rem;
-  color: #4f8cff;
+  color: #3b82f6;
   margin: 0 0 1rem 0;
   font-weight: 600;
 }
@@ -592,7 +624,7 @@ textarea {
   flex-wrap: wrap;
 }
 .predefined-variations button {
-  background: #4f8cff;
+  background: #3b82f6;
   color: #fff;
   padding: 0.5rem 1.1rem;
   border-radius: 20px;
@@ -602,7 +634,7 @@ textarea {
   transition: background 0.2s;
 }
 .predefined-variations button:hover {
-  background: #3570c9;
+  background: #2563eb;
 }
 .add-variation-form {
   display: grid;
@@ -632,10 +664,10 @@ textarea {
 }
 .variations-list li {
   display: flex; align-items: center; gap: 0.5rem;
-  background: #23272f;
+  background: var(--bg-card);
   padding: 0.5rem;
   border-radius: 7px;
-  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.07);
+  border: 1px solid var(--border-color);
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
@@ -670,42 +702,42 @@ textarea {
   transition: background 0.2s;
 }
 .button-primary {
-  background: #4f8cff;
+  background: #3b82f6;
   color: #fff;
 }
 .button-primary:disabled {
-  background: #3a4666;
+  background: var(--border-color);
   cursor: not-allowed;
 }
 .button-primary:hover:not(:disabled) {
-  background: #3570c9;
+  background: #2563eb;
 }
 .button-secondary {
-  background: #353b48;
-  color: #b6bedc;
+  background: var(--border-color);
+  color: var(--text-body);
 }
 .button-secondary:hover {
-  background: #23272f;
+  background: var(--text-secondary);
   color: #fff;
 }
 
 /* --- Modal de Recorte --- */
 .cropper-modal {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(24,28,34,0.92);
+  background: rgba(0,0,0,0.8);
   display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
 .cropper-content {
-  background: #23272f;
+  background: var(--bg-card);
   padding: 2rem;
   border-radius: 16px;
   width: 95%; max-width: 500px;
-  box-shadow: 0 2px 24px 0 rgba(0,0,0,0.18);
+  box-shadow: 0 4px 24px 0 var(--shadow-color);
 }
 .cropper-title {
   margin: 0 0 1.5rem 0;
   text-align: center;
-  color: #e6eaf3;
+  color: var(--text-primary);
 }
 .cropper { height: 300px; }
 .cropper-actions {
@@ -713,28 +745,50 @@ textarea {
 }
 
 /* --- Lista de Productos --- */
+.list-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.search-box input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+  color: var(--text-body);
+}
+.search-box input:focus {
+  background-color: var(--bg-hover);
+  border-color: #3b82f6;
+  outline: none;
+}
+
 .products-list {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.2rem;
 }
 .product-item-card {
-  background: rgba(34, 38, 46, 0.98);
+  background: var(--bg-card);
   border-radius: 14px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 1px 8px 0 rgba(0,0,0,0.10);
-  transition: box-shadow 0.2s;
+  box-shadow: 0 4px 6px var(--shadow-color);
+  border: 1px solid var(--border-color);
+  transition: box-shadow 0.2s, transform 0.2s, background-color 0.3s, border-color 0.3s;
 }
 .product-item-card:hover {
-  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.18);
+  box-shadow: 0 8px 15px var(--shadow-color);
+  transform: translateY(-2px);
 }
 .product-image {
   width: 100%;
   height: 180px;
   object-fit: cover;
-  background: #23272f;
+  background: var(--bg-hover);
 }
 .product-info {
   padding: 1.1rem 1rem 0.7rem 1rem;
@@ -743,16 +797,16 @@ textarea {
 .product-name {
   margin: 0 0 0.25rem;
   font-size: 1.13rem;
-  color: #e6eaf3;
+  color: var(--text-primary);
   font-weight: 600;
 }
 .product-category, .product-price {
-  color: #b6bedc;
+  color: var(--text-secondary);
   margin: 0.25rem 0;
 }
 .product-price {
   font-weight: bold;
-  color: #4f8cff;
+  color: #3b82f6;
 }
 .product-stock {
   margin-top: 1rem;
@@ -762,32 +816,34 @@ textarea {
   list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.5rem;
 }
 .product-stock li {
-  background: #353b48;
+  background: var(--bg-hover);
   padding: 0.2rem 0.7rem;
   border-radius: 5px;
-  color: #e6eaf3;
+  border: 1px solid var(--border-color);
+  color: var(--text-body);
 }
 .product-actions {
   display: flex;
-  background: #23272f;
+  background: var(--bg-hover);
   padding: 0.7rem;
   gap: 0.7rem;
+  border-top: 1px solid var(--border-color);
 }
 .action-btn {
   flex-grow: 1;
   background: none;
   border: none;
-  color: #e6eaf3;
+  color: var(--text-secondary);
   padding: 0.8rem;
   cursor: pointer;
   font-size: 0.98rem;
   border-radius: 8px;
   transition: background 0.2s, color 0.2s;
 }
-.edit-btn { color: #ffc107; }
-.edit-btn:hover { background: #353b48; color: #fff; }
-.delete-btn { color: #dc3545; }
-.delete-btn:hover { background: #353b48; color: #ff5a5a; }
+.edit-btn { color: #f59e0b; }
+.edit-btn:hover { background: var(--border-color); color: #b45309; }
+.delete-btn { color: #ef4444; }
+.delete-btn:hover { background: var(--border-color); color: #b91c1c; }
 
 /* --- Responsive --- */
 @media (min-width: 600px) {

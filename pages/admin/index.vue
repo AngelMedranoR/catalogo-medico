@@ -31,27 +31,23 @@
     <!-- Tablas de Resumen -->
     <div class="tables-grid">
       <div class="table-widget">
-        <h2 class="widget-title">Productos Recientes</h2>
-        <div class="widget-content">
-          <ul v-if="recentProducts.length > 0" class="item-list">
-            <li v-for="product in recentProducts" :key="product.id">
-              <span>{{ product.name }}</span>
-              <span class="stock-badge">Stock: {{ product.displayStock }}</span>
-            </li>
-          </ul>
-          <p v-else class="empty-text">No hay productos para mostrar.</p>
+        <h2 class="widget-title">Resumen de Órdenes (Últimos 7 días)</h2>
+        <div class="widget-content chart-container">
+          <Line v-if="chartData.labels.length > 0" :data="chartData" :options="chartOptions" />
+          <p v-else class="empty-text">No hay suficientes datos de órdenes para graficar.</p>
         </div>
       </div>
 
-      <div class="table-widget">
-        <h2 class="widget-title">Categorías</h2>
+      <div class="table-widget low-stock-widget">
+        <h2 class="widget-title"><AlertTriangleIcon class="icon-danger"/> Alerta de Escasez</h2>
         <div class="widget-content">
-          <ul v-if="categories.length > 0" class="item-list">
-            <li v-for="category in categories" :key="category.id">
-              <span>{{ category.name }}</span>
+          <ul v-if="lowStockItems.length > 0" class="item-list">
+            <li v-for="item in lowStockItems" :key="item.id" class="low-stock-item">
+              <span>{{ item.name }} <small v-if="item.reference">({{item.reference}})</small></span>
+              <span class="stock-badge danger">Stock: {{ item.stock }}</span>
             </li>
           </ul>
-          <p v-else class="empty-text">No hay categorías registradas.</p>
+          <p v-else class="empty-text success-text">No hay productos con escasez (Stock < 5).</p>
         </div>
       </div>
     </div>
@@ -60,6 +56,21 @@
 
 <script setup>
 import { ref, onMounted, reactive, computed } from 'vue';
+import { AlertTriangleIcon } from 'lucide-vue-next';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Filler
+} from 'chart.js';
+import { Line } from 'vue-chartjs';
+
+ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale, Filler);
 
 definePageMeta({
   layout: 'admin',
@@ -67,40 +78,25 @@ definePageMeta({
 });
 
 const supabase = useSupabaseClient();
-const rawRecentProducts = ref([]);
-const categories = ref([]);
+const lowStockItems = ref([]);
+const chartData = ref({ labels: [], datasets: [] });
 const summary = reactive({
   productsCount: 0,
   categoriesCount: 0,
   pendingOrdersCount: 0,
 });
 
-const recentProducts = computed(() => {
-  return rawRecentProducts.value.map(product => {
-    let totalStock = 0;
-    if (product.product_variations && product.product_variations.length > 0) {
-      totalStock = product.product_variations.reduce((sum, variation) => sum + (variation.stock || 0), 0);
-    } else {
-      totalStock = product.stock || 0;
-    }
-    return {
-      ...product,
-      displayStock: totalStock
-    };
-  });
-});
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { display: false } },
+    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+  }
+};
 
 async function fetchData() {
-  const { data: productData } = await supabase
-    .from('products')
-    .select('id, name, stock, product_variations(stock)')
-    .order('created_at', { ascending: false })
-    .limit(5);
-  rawRecentProducts.value = productData || [];
-
-  const { data: categoryData } = await supabase.from('categories').select('id, name');
-  categories.value = categoryData || [];
-
   const { count: productsCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
   const { count: categoriesCount } = await supabase.from('categories').select('*', { count: 'exact', head: true });
   const { count: pendingOrdersCount } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending');
@@ -108,6 +104,63 @@ async function fetchData() {
   summary.productsCount = productsCount || 0;
   summary.categoriesCount = categoriesCount || 0;
   summary.pendingOrdersCount = pendingOrdersCount || 0;
+
+  // Process Low Stock (Threshold < 5)
+  const { data: products } = await supabase.from('products').select('id, name, stock');
+  const { data: variations } = await supabase.from('product_variations').select('id, product_id, reference, stock, products(name)');
+  
+  const lowItems = [];
+  if (products) {
+    products.forEach(p => { if (p.stock < 5 && p.stock > 0) lowItems.push(p); });
+  }
+  if (variations) {
+    variations.forEach(v => { 
+      if (v.stock < 5) lowItems.push({ id: `var-${v.id}`, name: v.products?.name, reference: v.reference, stock: v.stock }); 
+    });
+  }
+  lowStockItems.value = lowItems.sort((a,b) => a.stock - b.stock).slice(0, 10);
+
+  // Process Chart Data (Last 7 days of Orders)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); // 7 days inclusive
+  const { data: recentOrders } = await supabase
+    .from('orders')
+    .select('created_at')
+    .gte('created_at', sevenDaysAgo.toISOString());
+
+  const datesObj = {};
+  for(let i=0; i<7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    datesObj[d.toISOString().split('T')[0]] = 0;
+  }
+  
+  if (recentOrders) {
+    recentOrders.forEach(order => {
+      const dateKey = order.created_at.split('T')[0];
+      if(datesObj[dateKey] !== undefined) datesObj[dateKey]++;
+    });
+  }
+
+  const sortedDates = Object.keys(datesObj).sort();
+  const dateLabels = sortedDates.map(d => {
+    const parts = d.split('-');
+    return `${parts[2]}/${parts[1]}`;
+  });
+  const dataPoints = sortedDates.map(d => datesObj[d]);
+
+  chartData.value = {
+    labels: dateLabels,
+    datasets: [{
+      label: 'Órdenes',
+      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+      borderColor: '#3b82f6',
+      pointBackgroundColor: '#2563eb',
+      fill: true,
+      tension: 0.4,
+      data: dataPoints
+    }]
+  };
 }
 
 onMounted(fetchData);
@@ -172,21 +225,21 @@ onMounted(fetchData);
 }
 .dashboard-container {
   padding: 1.5rem;
-  background-color: #f8f9fa; /* Lighter background for a cleaner look */
-  color: #333;             /* Darker text for contrast */
-  max-width: 1400px;       /* Wider layout */
+  background-color: var(--bg-main); 
+  color: var(--text-body);          
+  max-width: 1400px;       
   margin: 0 auto;
 }
 
 .title {
   font-size: 2rem;
   font-weight: 700;
-  color: #2c3e50;         /* Deep blue-gray for titles */
+  color: var(--text-primary);         
   margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  color: #6c757d;         /* Soft gray for subtitles */
+  color: var(--text-secondary);         
   font-size: 1.1rem;
   margin-bottom: 2.5rem;
 }
@@ -200,51 +253,48 @@ onMounted(fetchData);
 }
 
 .metric-card {
-  background-color: #ffffff;  /* White cards */
-  border: 1px solid #e9ecef;  /* Subtle border */
-  border-radius: 16px;        /* Rounder corners */
-  padding: 2rem;
+  background-color: var(--bg-card);
+  padding: 1.8rem;
+  border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* Soft shadow */
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  gap: 1.2rem;
+  box-shadow: 0 4px 6px var(--shadow-color);
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s, border-color 0.3s;
 }
 
 .metric-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 15px var(--shadow-color);
 }
 
 .metric-icon {
-  font-size: 2.5rem;
-  width: 80px;
-  height: 80px;
+  font-size: 2rem;
+  padding: 1rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f1f3f5; /* Light gray fallback background */
 }
 .metric-icon.products { background-color: rgba(52, 152, 219, 0.15); color: #2980b9; }
 .metric-icon.categories { background-color: rgba(230, 126, 34, 0.15); color: #d35400; }
 .metric-icon.orders { background-color: rgba(46, 204, 113, 0.15); color: #27ae60; }
 
-.metric-info .metric-value {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: #2c3e50;
+.metric-info h3 {
   margin: 0;
-  line-height: 1.2;
-}
-
-.metric-info .metric-label {
-  font-size: 1rem;
-  color: #6c757d;
-  font-weight: 500;
-  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.metric-value {
+  margin: 0.3rem 0 0 0;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
 }
 
 /* --- Widgets de Tablas --- */
@@ -255,25 +305,31 @@ onMounted(fetchData);
 }
 
 .table-widget {
-  background-color: #ffffff;
-  border: 1px solid #e9ecef;
-  border-radius: 16px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+  background-color: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px var(--shadow-color);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.3s, border-color 0.3s;
   overflow: hidden; /* Ensure headers don't spill out */
 }
 
 .widget-title {
-  font-size: 1.25rem;
-  font-weight: 600;
   padding: 1.2rem 1.5rem;
   margin: 0;
-  background-color: #f8f9fa; /* Subtle header background */
-  border-bottom: 1px solid #e9ecef;
-  color: #2c3e50;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .widget-content {
-  padding: 1.5rem;
+  padding: 0;
+  flex: 1;
 }
 
 .item-list {
@@ -283,18 +339,26 @@ onMounted(fetchData);
 }
 
 .item-list li {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid #f1f3f5;
-  color: #495057;
-  font-weight: 500;
+  transition: background-color 0.2s ease;
+  color: var(--text-body);
 }
 
 .item-list li:last-child {
   border-bottom: none;
-  padding-bottom: 0; /* Remove padding for the last item for visual balance */
+}
+
+.item-list li:hover {
+  background-color: var(--bg-hover);
+}
+
+.item-name {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .stock-badge {
@@ -307,11 +371,43 @@ onMounted(fetchData);
   letter-spacing: 0.3px;
 }
 
+.stock-badge.danger {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
 .empty-text {
   color: #adb5bd;
   text-align: center;
   padding: 2rem;
   font-style: italic;
+}
+
+.success-text {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.chart-container {
+  height: 300px;
+  position: relative;
+}
+
+.icon-danger {
+  color: #e11d48;
+  margin-right: 0.5rem;
+  vertical-align: text-bottom;
+}
+
+.low-stock-widget .widget-title {
+  color: #e11d48;
+  background-color: #fff1f2;
+  border-bottom-color: #ffe4e6;
+}
+
+.low-stock-item small {
+  color: #6c757d;
+  margin-left: 0.3rem;
 }
 
 @media (min-width: 768px) {
