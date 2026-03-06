@@ -89,8 +89,8 @@
     @touchmove="onTouchMoveVariation"
     @touchend="onTouchEndVariation">
                 <span>{{ v.reference }}</span>
-                <input type="number" v-model.number="v.stock" @change="editingProduct && updateVariation(v)">
-                <input type="number" step="0.01" v-model.number="v.price" @change="editingProduct && updateVariation(v)">
+                <input type="number" v-model.number="v.stock" @change="editingProduct ? updateVariation(v) : null">
+                <input type="number" step="0.01" v-model.number="v.price" @change="editingProduct ? updateVariation(v) : syncBasePrice()">
                 <button @click.prevent="deleteVariation(v.id)" class="delete-btn">🗑️</button>
                 <span v-if="draggingVariationIdx === idx" style="opacity:0.5;">(Arrastrando)</span>
               </li>
@@ -328,7 +328,15 @@ const saveProduct = async () => {
     category_id: form.value.category_id,
     price: form.value.price,
   };
-  if (showVariationsSection.value) productData.stock = 0; // Set main stock to 0 if variations are used
+  if (showVariationsSection.value) {
+    productData.stock = 0; // Set main stock to 0 if variations are used
+    const vars = editingProduct.value ? productVariations.value : newProductVariations.value;
+    if (vars.length > 0) {
+      productData.price = Math.min(...vars.map(v => Number(v.price) || 0));
+    } else {
+      productData.price = 0;
+    }
+  }
 
   try {
     if (editingProduct.value) {
@@ -387,13 +395,33 @@ const deleteProduct = async (id) => {
   }
 };
 
+const syncBasePrice = async () => {
+  const vars = editingProduct.value ? productVariations.value : newProductVariations.value;
+  const minPrice = vars.length > 0 ? Math.min(...vars.map(v => Number(v.price) || 0)) : 0;
+  form.value.price = minPrice;
+
+  if (editingProduct.value) {
+    await supabase.from('products').update({ price: minPrice }).eq('id', editingProduct.value.id);
+    
+    // Auto-update price visually in the list
+    const pIndex = products.value.findIndex(p => p.id === editingProduct.value.id);
+    if (pIndex !== -1) {
+      products.value[pIndex].price = minPrice;
+    }
+  }
+};
+
 const addVariation = async (variation) => {
   if (!variation.reference?.trim() || variation.stock === null || variation.price === null) return alert('Referencia, stock y precio son obligatorios.');
   if (editingProduct.value) {
     const { data, error } = await supabase.from('product_variations').insert([{ product_id: editingProduct.value.id, ...variation }]).select().single();
-    if (!error) productVariations.value.push(data);
+    if (!error) {
+      productVariations.value.push(data);
+      await syncBasePrice();
+    }
   } else {
     newProductVariations.value.push({ id: `temp-${Date.now()}`, ...variation });
+    syncBasePrice();
   }
 };
 
@@ -406,14 +434,17 @@ const addVariationWrapper = () => {
 
 const updateVariation = async (v) => {
   await supabase.from('product_variations').update({ stock: v.stock, price: v.price }).eq('id', v.id);
+  await syncBasePrice();
 };
 
 const deleteVariation = async (id) => {
   if (editingProduct.value) {
     await supabase.from('product_variations').delete().eq('id', id);
     productVariations.value = productVariations.value.filter(v => v.id !== id);
+    await syncBasePrice();
   } else {
     newProductVariations.value = newProductVariations.value.filter(v => v.id !== id);
+    syncBasePrice();
   }
 };
 
