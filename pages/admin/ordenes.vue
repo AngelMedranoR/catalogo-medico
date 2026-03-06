@@ -251,35 +251,39 @@ const formatDate = (date) => new Date(date).toLocaleDateString('es-VE', { day: '
   }
 }
 .orders-container {
-  padding: 1rem;
-  background-color: #121212;
-  color: #e0e0e0;
-  max-width: 1200px;
+  padding: 1.5rem;
+  background-color: #f8f9fa; /* Lighter background for a cleaner look */
+  color: #333;             /* Darker text for contrast */
+  max-width: 1400px;
   margin: 0 auto;
 }
 
 .title {
   text-align: center;
-  margin-bottom: 2rem;
-  font-size: 1.8rem;
-  color: #fff;
+  margin-bottom: 2.5rem;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
 }
 
 /* --- Estados de Carga y Vacío --- */
 .loading-state, .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  background-color: #1e1e1e;
-  border-radius: 12px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
 }
 .empty-state h2 {
   margin: 1rem 0 0.5rem;
-  color: #fff;
+  color: #2c3e50;
+  font-weight: 600;
 }
 .empty-state p {
-  color: #aaa;
+  color: #6c757d;
 }
-.empty-state p:first-child { font-size: 2.5rem; margin: 0; }
+.empty-state p:first-child { font-size: 3rem; margin: 0; }
 
 .spinner {
   border: 4px solid rgba(255, 255, 255, 0.2);
@@ -298,42 +302,44 @@ const formatDate = (date) => new Date(date).toLocaleDateString('es-VE', { day: '
 .orders-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .order-card {
-  background-color: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 12px;
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 16px;
   overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .order-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 1rem 1.5rem;
-  background-color: #242424;
-  border-bottom: 1px solid #333;
+  padding: 1.2rem 1.5rem;
+  background-color: #f1f3f5;
+  border-bottom: 1px solid #e9ecef;
 }
 
-.customer-name { margin: 0; font-size: 1.2rem; color: #fff; }
-.order-date { margin: 0.25rem 0 0; font-size: 0.8rem; color: #aaa; }
+.customer-name { margin: 0; font-size: 1.25rem; font-weight: 600; color: #2c3e50; }
+.order-date { margin: 0.25rem 0 0; font-size: 0.85rem; color: #6c757d; font-weight: 500; }
 
 .status-badge {
   padding: 0.3rem 0.8rem;
   border-radius: 20px;
   font-size: 0.8rem;
-  font-weight: bold;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-.status-pending { background-color: #f0ad4e; color: #111; }
-.status-confirmed { background-color: #5cb85c; color: #fff; }
+.status-pending { background-color: rgba(240, 173, 78, 0.15); color: #d35400; }
+.status-confirmed { background-color: rgba(92, 184, 92, 0.15); color: #27ae60; }
 
 .card-body {
   padding: 1.5rem;
@@ -343,50 +349,57 @@ const formatDate = (date) => new Date(date).toLocaleDateString('es-VE', { day: '
   display: flex;
   justify-content: space-between;
   margin-bottom: 0.8rem;
+  border-bottom: 1px dashed #f1f3f5;
+  padding-bottom: 0.4rem;
 }
-.detail-label { color: #aaa; }
-.detail-value { color: #fff; font-weight: 500; }
-.total-price { font-size: 1.2rem; color: #5cb85c; }
+.detail-label { color: #6c757d; font-weight: 500; }
+.detail-value { color: #2c3e50; font-weight: 600; }
+.total-price { font-size: 1.2rem; color: #27ae60; font-weight: 800; }
 
 .products-section {
   margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #333;
+  padding-top: 1.2rem;
+  border-top: 1.5px solid #e9ecef;
 }
-.products-title { margin: 0 0 1rem; font-size: 1rem; color: #fff; }
+.products-title { margin: 0 0 1rem; font-size: 1.1rem; color: #2c3e50; font-weight: 600; }
 .products-list-items { list-style: none; padding: 0; margin: 0; }
 .products-list-items li {
   display: flex;
   justify-content: space-between;
-  padding: 0.4rem 0;
-  color: #ccc;
+  padding: 0.5rem 0;
+  color: #495057;
+  font-weight: 500;
 }
-.product-quantity { font-weight: bold; color: #fff; }
+.product-quantity { font-weight: bold; color: #2c3e50; }
 
 .card-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1px;
-  background-color: #333;
+  background-color: #e9ecef;
+  border-top: 1px solid #e9ecef;
 }
 
 .action-button {
-  padding: 1rem;
+  padding: 1.2rem;
   border: none;
   cursor: pointer;
-  color: white;
+  color: #495057;
   font-size: 1rem;
-  background-color: #242424;
-  transition: background-color 0.2s ease;
+  font-weight: 600;
+  background-color: #f8f9fa;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
 }
-.action-button:hover { background-color: #444; }
-.action-button.confirm { color: #5cb85c; }
-.action-button.confirm:disabled { color: #666; background-color: #222; cursor: not-allowed; }
-.action-button.delete { color: #dc3545; }
+.action-button:hover { background-color: #ffffff; z-index: 1; position: relative; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+.action-button.confirm { color: #27ae60; }
+.action-button.confirm:hover { color: #1e8449; }
+.action-button.confirm:disabled { color: #adb5bd; background-color: #e9ecef; cursor: not-allowed; box-shadow: none; }
+.action-button.delete { color: #ef4444; }
+.action-button.delete:hover { color: #b91c1c; }
 
 /* --- Media Query para Tablets y Escritorios Pequeños --- */
 @media (min-width: 768px) {
