@@ -11,11 +11,17 @@
             <label for="product-name">Nombre del Producto</label>
             <input id="product-name" type="text" v-model="form.name" required>
           </div>
-          <div class="form-group">
-            <label for="product-price">Precio Base ($)</label>
-            <input id="product-price" type="number" step="0.01" v-model="form.price" :disabled="showVariationsSection" :required="!showVariationsSection">
-            <small v-if="showVariationsSection">El precio se definirá por cada variante.</small>
+          <div class="form-group row-price">
+            <div class="price-input-group">
+              <label for="product-price">Precio Base ($)</label>
+              <input id="product-price" type="number" step="0.01" v-model="form.price" :disabled="showVariationsSection" :required="!showVariationsSection">
+            </div>
+            <div class="price-input-group">
+              <label for="product-discount">Precio de Oferta ($) <small>(Opcional)</small></label>
+              <input id="product-discount" type="number" step="0.01" v-model="form.discount_price" :disabled="showVariationsSection" placeholder="Dejar vacío si no hay oferta">
+            </div>
           </div>
+          <small class="variation-warning" v-if="showVariationsSection">El precio y oferta se definirán por cada variante debajo.</small>
           <div class="form-group">
             <label for="product-category">Categoría</label>
             <select id="product-category" v-model="form.category_id" required>
@@ -78,6 +84,7 @@
               <input v-model="newVariation.reference" type="text" placeholder="Referencia" required>
               <input v-model.number="newVariation.stock" type="number" placeholder="Stock" required>
               <input v-model.number="newVariation.price" type="number" step="0.01" placeholder="Precio ($)" required>
+              <input v-model.number="newVariation.discount_price" type="number" step="0.01" placeholder="Oferta ($)">
               <button @click.prevent="addVariationWrapper" type="button" class="button-add">Agregar</button>
             </div>
             <ul v-if="variationsToShow.length > 0" class="variations-list" @dragover.prevent @drop="onDropVariation">
@@ -89,8 +96,9 @@
     @touchmove="onTouchMoveVariation"
     @touchend="onTouchEndVariation">
                 <span>{{ v.reference }}</span>
-                <input type="number" v-model.number="v.stock" @change="editingProduct ? updateVariation(v) : null">
-                <input type="number" step="0.01" v-model.number="v.price" @change="editingProduct ? updateVariation(v) : syncBasePrice()">
+                <input type="number" v-model.number="v.stock" placeholder="Stock" @change="editingProduct ? updateVariation(v) : null">
+                <input type="number" step="0.01" v-model.number="v.price" placeholder="Precio" @change="editingProduct ? updateVariation(v) : syncBasePrice()">
+                <input type="number" step="0.01" v-model.number="v.discount_price" placeholder="Oferta" @change="editingProduct ? updateVariation(v) : syncBasePrice()">
                 <button @click.prevent="deleteVariation(v.id)" class="delete-btn">🗑️</button>
                 <span v-if="draggingVariationIdx === idx" style="opacity:0.5;">(Arrastrando)</span>
               </li>
@@ -135,10 +143,15 @@
             <div class="product-info">
               <h4 class="product-name">{{ product.name }}</h4>
               <p class="product-category">{{ product.categories?.name || 'Sin categoría' }}</p>
-              <p class="product-price">${{ product.price }}</p>
+              <div class="product-price-container">
+                <p class="product-price" :class="{ 'has-discount': product.discount_price }">${{ product.price }}</p>
+                <p v-if="product.discount_price" class="product-discount-price">${{ product.discount_price }}</p>
+              </div>
               <div class="product-stock">
                 <ul v-if="product.product_variations?.length">
-                  <li v-for="v in product.product_variations" :key="v.id">{{ v.reference }}: <strong>{{ v.stock }}</strong> - ${{ v.price }}</li>
+                  <li v-for="v in product.product_variations" :key="v.id">
+                    {{ v.reference }}: <strong>{{ v.stock }}</strong> - <span :class="{ 'strike': v.discount_price }">${{ v.price }}</span> <span v-if="v.discount_price" class="sale-price">${{ v.discount_price }}</span>
+                  </li>
                 </ul>
                 <span v-else>Stock: <strong>{{ product.stock }}</strong></span>
               </div>
@@ -242,9 +255,9 @@ const isUploading = ref(false);
 
 const productVariations = ref([]);
 const newProductVariations = ref([]);
-const newVariation = reactive({ reference: '', stock: 0, price: 0 }); // Added price
+const newVariation = reactive({ reference: '', stock: 0, price: 0, discount_price: null });
 
-const getInitialFormState = () => ({ name: '', slug: '', description: '', stock: 0, image_url: '', category_id: null, price: null });
+const getInitialFormState = () => ({ name: '', slug: '', description: '', stock: 0, image_url: '', category_id: null, price: null, discount_price: null });
 const form = ref(getInitialFormState());
 
 const selectedCategory = computed(() => categories.value.find(cat => cat.id === form.value.category_id));
@@ -345,14 +358,18 @@ const saveProduct = async () => {
     image_url_3: form.value.image_url_3 || null,
     category_id: form.value.category_id,
     price: form.value.price,
+    discount_price: form.value.discount_price || null,
   };
   if (showVariationsSection.value) {
     productData.stock = 0; // Set main stock to 0 if variations are used
     const vars = editingProduct.value ? productVariations.value : newProductVariations.value;
     if (vars.length > 0) {
       productData.price = Math.min(...vars.map(v => Number(v.price) || 0));
+      const hasDiscountedVars = vars.filter(v => typeof v.discount_price === 'number' && v.discount_price > 0);
+      productData.discount_price = hasDiscountedVars.length > 0 ? Math.min(...hasDiscountedVars.map(v => Number(v.discount_price))) : null;
     } else {
       productData.price = 0;
+      productData.discount_price = null;
     }
   }
 
@@ -419,15 +436,21 @@ const deleteProduct = async (id) => {
 const syncBasePrice = async () => {
   const vars = editingProduct.value ? productVariations.value : newProductVariations.value;
   const minPrice = vars.length > 0 ? Math.min(...vars.map(v => Number(v.price) || 0)) : 0;
+  
+  const discountedVars = vars.filter(v => typeof v.discount_price === 'number' && v.discount_price > 0);
+  const minDiscountPrice = discountedVars.length > 0 ? Math.min(...discountedVars.map(v => Number(v.discount_price))) : null;
+
   form.value.price = minPrice;
+  form.value.discount_price = minDiscountPrice;
 
   if (editingProduct.value) {
-    await supabase.from('products').update({ price: minPrice }).eq('id', editingProduct.value.id);
+    await supabase.from('products').update({ price: minPrice, discount_price: minDiscountPrice }).eq('id', editingProduct.value.id);
     
     // Auto-update price visually in the list
     const pIndex = products.value.findIndex(p => p.id === editingProduct.value.id);
     if (pIndex !== -1) {
       products.value[pIndex].price = minPrice;
+      products.value[pIndex].discount_price = minDiscountPrice;
     }
   }
 };
@@ -437,14 +460,15 @@ const addVariation = async (variation) => {
     toast.warning('Referencia, stock y precio son obligatorios.');
     return;
   }
+  const payloadToInsert = { ...variation, discount_price: variation.discount_price || null };
   if (editingProduct.value) {
-    const { data, error } = await supabase.from('product_variations').insert([{ product_id: editingProduct.value.id, ...variation }]).select().single();
+    const { data, error } = await supabase.from('product_variations').insert([{ product_id: editingProduct.value.id, ...payloadToInsert }]).select().single();
     if (!error) {
       productVariations.value.push(data);
       await syncBasePrice();
     }
   } else {
-    newProductVariations.value.push({ id: `temp-${Date.now()}`, ...variation });
+    newProductVariations.value.push({ id: `temp-${Date.now()}`, ...payloadToInsert });
     syncBasePrice();
   }
 };
@@ -454,10 +478,11 @@ const addVariationWrapper = () => {
   newVariation.reference = '';
   newVariation.stock = 0;
   newVariation.price = 0; // Reset price
+  newVariation.discount_price = null;
 };
 
 const updateVariation = async (v) => {
-  await supabase.from('product_variations').update({ stock: v.stock, price: v.price }).eq('id', v.id);
+  await supabase.from('product_variations').update({ stock: v.stock, price: v.price, discount_price: v.discount_price || null }).eq('id', v.id);
   await syncBasePrice();
 };
 
@@ -528,7 +553,20 @@ onMounted(fetchData);
   font-weight: 600;
 }
 
-/* --- Formulario --- */
+/* --- Ajustes del input doble del Formulario --- */
+.row-price {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+.row-price .price-input-group label {
+  white-space: nowrap;
+}
+.variation-warning {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: -0.5rem;
+}
 .form-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -610,6 +648,7 @@ textarea {
   border-radius: 10px;
   margin-top: 1.5rem;
   border: 1px solid var(--border-color);
+  overflow-x: auto;
 }
 .section-subtitle {
   font-size: 1.08rem;
@@ -638,11 +677,11 @@ textarea {
 }
 .add-variation-form {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: minmax(100px, 1fr) 80px 100px 100px auto;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
-.add-variation-form input { margin-bottom: 0; }
+.add-variation-form input { margin-bottom: 0; min-width: 0; width: 100%; }
 .button-add {
   background: #28a745;
   color: #fff;
@@ -661,9 +700,12 @@ textarea {
   list-style: none;
   padding: 0; margin: 0;
   display: flex; flex-direction: column; gap: 0.5rem;
+  min-width: max-content;
 }
 .variations-list li {
-  display: flex; align-items: center; gap: 0.5rem;
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) 80px 100px 100px auto;
+  align-items: center; gap: 0.5rem;
   background: var(--bg-card);
   padding: 0.5rem;
   border-radius: 7px;
@@ -672,8 +714,8 @@ textarea {
   -webkit-user-select: none;
   touch-action: pan-y;
 }
-.variations-list li span { flex-grow: 1; }
-.variations-list li input { width: 80px; text-align: center; }
+.variations-list li span { font-weight: 500; font-size: 0.95rem; }
+.variations-list li input { min-width: 60px; width: 100%; text-align: center; }
 .delete-btn {
   background: none;
   border: none;
@@ -804,9 +846,36 @@ textarea {
   color: var(--text-secondary);
   margin: 0.25rem 0;
 }
+.product-price-container {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+.product-price.has-discount {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: normal;
+}
+.product-discount-price {
+  font-weight: bold;
+  color: #3b82f6;
+  margin: 0;
+}
 .product-price {
   font-weight: bold;
   color: #3b82f6;
+  margin: 0;
+}
+.strike {
+  text-decoration: line-through;
+  opacity: 0.7;
+  font-size: 0.9em;
+}
+.sale-price {
+  color: #3b82f6;
+  font-weight: bold;
 }
 .product-stock {
   margin-top: 1rem;
@@ -884,8 +953,38 @@ textarea {
     width: 100%;
     min-width: 0;
   }
+  .row-price {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
   .widget-card {
     padding: 1.2rem 0.5rem;
+  }
+  .stock-section { padding: 1rem 0.5rem; }
+  .add-variation-form {
+    grid-template-columns: 1fr;
+  }
+  .variations-list {
+    min-width: 100%;
+  }
+  .variations-list li {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    padding: 1rem;
+    gap: 0.8rem;
+  }
+  .variations-list li span { 
+    grid-column: span 2; 
+    border-bottom: 1px solid var(--border-color); 
+    padding-bottom: 0.5rem; 
+    font-size: 1.05rem;
+  }
+  .delete-btn {
+    grid-column: span 2;
+    background: rgba(220, 53, 69, 0.1);
+    border-radius: 6px;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
   }
 }
 @media (min-width: 992px) {
