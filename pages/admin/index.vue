@@ -171,86 +171,105 @@ onMounted(fetchData);
   }
 }
 .dashboard-container {
-  padding: 1rem;
-  background-color: #121212;
-  color: #e0e0e0;
-  max-width: 1200px;
+  padding: 1.5rem;
+  background-color: #f8f9fa; /* Lighter background for a cleaner look */
+  color: #333;             /* Darker text for contrast */
+  max-width: 1400px;       /* Wider layout */
   margin: 0 auto;
 }
 
 .title {
-  font-size: 1.8rem;
-  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;         /* Deep blue-gray for titles */
   margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  color: #aaa;
-  margin-bottom: 2rem;
+  color: #6c757d;         /* Soft gray for subtitles */
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
 }
 
 /* --- Métricas --- */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Slightly wider cards */
+  gap: 2rem;
+  margin-bottom: 3rem;
 }
 
 .metric-card {
-  background-color: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 12px;
-  padding: 1.5rem;
+  background-color: #ffffff;  /* White cards */
+  border: 1px solid #e9ecef;  /* Subtle border */
+  border-radius: 16px;        /* Rounder corners */
+  padding: 2rem;
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* Soft shadow */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 
 .metric-icon {
   font-size: 2.5rem;
-  padding: 1rem;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: #f1f3f5; /* Light gray fallback background */
 }
-.metric-icon.products { background-color: rgba(52, 152, 219, 0.1); }
-.metric-icon.categories { background-color: rgba(230, 126, 34, 0.1); }
-.metric-icon.orders { background-color: rgba(241, 196, 15, 0.1); }
+.metric-icon.products { background-color: rgba(52, 152, 219, 0.15); color: #2980b9; }
+.metric-icon.categories { background-color: rgba(230, 126, 34, 0.15); color: #d35400; }
+.metric-icon.orders { background-color: rgba(46, 204, 113, 0.15); color: #27ae60; }
 
 .metric-info .metric-value {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #2c3e50;
   margin: 0;
+  line-height: 1.2;
 }
 
 .metric-info .metric-label {
-  font-size: 0.9rem;
-  color: #aaa;
+  font-size: 1rem;
+  color: #6c757d;
+  font-weight: 500;
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* --- Widgets de Tablas --- */
 .tables-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .table-widget {
-  background-color: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 12px;
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+  overflow: hidden; /* Ensure headers don't spill out */
 }
 
 .widget-title {
-  font-size: 1.2rem;
-  padding: 1rem 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 1.2rem 1.5rem;
   margin: 0;
-  border-bottom: 1px solid #333;
-  color: #fff;
+  background-color: #f8f9fa; /* Subtle header background */
+  border-bottom: 1px solid #e9ecef;
+  color: #2c3e50;
 }
 
 .widget-content {
@@ -267,26 +286,32 @@ onMounted(fetchData);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.8rem 0;
-  border-bottom: 1px solid #2a2a2a;
+  padding: 1rem 0;
+  border-bottom: 1px solid #f1f3f5;
+  color: #495057;
+  font-weight: 500;
 }
 
 .item-list li:last-child {
   border-bottom: none;
+  padding-bottom: 0; /* Remove padding for the last item for visual balance */
 }
 
 .stock-badge {
-  background-color: #333;
-  color: #ccc;
-  padding: 0.2rem 0.6rem;
-  border-radius: 15px;
-  font-size: 0.8rem;
+  background-color: #e9ecef;
+  color: #495057;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .empty-text {
-  color: #888;
+  color: #adb5bd;
   text-align: center;
-  padding: 1rem;
+  padding: 2rem;
+  font-style: italic;
 }
 
 @media (min-width: 768px) {

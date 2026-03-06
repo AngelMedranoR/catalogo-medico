@@ -62,6 +62,12 @@
                 <button @click.prevent="addPredefinedVariation('Moldeadora')">Moldeadora</button>
                 <button @click.prevent="addPredefinedVariation('Post-quirúrgica')">Post-quirúrgica</button>
             </div>
+            <div v-if="isInmovilizadorCategory" class="predefined-variations">
+                <button @click.prevent="addPredefinedVariation('S')">S</button>
+                <button @click.prevent="addPredefinedVariation('M')">M</button>
+                <button @click.prevent="addPredefinedVariation('L')">L</button>
+                <button @click.prevent="addPredefinedVariation('XL')">XL</button>
+            </div>
             <div v-if="isVarizenCategory" class="predefined-variations">
               <button @click.prevent="addPredefinedVariation('5cm')">5cm</button>
               <button @click.prevent="addPredefinedVariation('10cm')">10cm</button>
@@ -236,12 +242,13 @@ const selectedCategory = computed(() => categories.value.find(cat => cat.id === 
 const showVariationsSection = computed(() => 
   selectedCategory.value?.name.toLowerCase().includes('vendas') || 
   selectedCategory.value?.name.toLowerCase().includes('fajas') ||
-  selectedCategory.value?.name.toLowerCase().includes('varizen')
+  selectedCategory.value?.name.toLowerCase().includes('varizen') ||
+  selectedCategory.value?.name.toLowerCase().includes('inmovilizador')
 );
 const variationTitle = computed(() => {
   const categoryName = selectedCategory.value?.name.toLowerCase();
   if (categoryName.includes('fajas multiusos')) return 'Gestionar Referencias';
-  if (categoryName.includes('fajas')) return 'Gestionar Tallas';
+  if (categoryName.includes('fajas') || categoryName.includes('inmovilizador')) return 'Gestionar Tallas';
   if (categoryName.includes('vendas') || categoryName.includes('varizen')) return 'Gestionar Medidas';
   return 'Gestionar Variantes';
 });
@@ -250,6 +257,7 @@ const isFajasCategory = computed(() => {
     const name = selectedCategory.value?.name.toLowerCase();
     return name && name.includes('fajas') && !name.includes('fajas multiusos');
 });
+const isInmovilizadorCategory = computed(() => selectedCategory.value?.name.toLowerCase().includes('inmovilizador'));
 const isVarizenCategory = computed(() => selectedCategory.value?.name.toLowerCase().includes('varizen'));
 const variationsToShow = computed(() => editingProduct.value ? productVariations.value : newProductVariations.value);
 
